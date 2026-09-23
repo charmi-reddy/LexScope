@@ -26,7 +26,7 @@ LexScope is an AI-powered legal document understanding platform. Paste an employ
 │    • cleaning, stats, size/content validation                       │
 │    • POST /api/ai/chat → services/ai_proxy.py  ◄── the ONLY         │
 │      provider-aware module. Server-side creds from .env:            │
-│      GEMINI_API_KEY (free tier) or PUTER_AUTH_TOKEN (paid plan)     │
+│      GEMINI_API_KEY (free tier)      │
 │      → Google Gemini (2.5 Flash, fallback 2.0 Flash)                │
 │    • rate limit, model allowlist, no content logging, NO storage    │
 └─────────────────────────────────────────────────────────────────────┘
@@ -47,21 +47,12 @@ cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Developer-pays AI: link YOUR Puter account once, users never sign in.
-cp .env.example .env          # then edit .env and paste your token (see below)
 
 uvicorn app.main:app --reload --env-file .env --port 8000
 ```
 
 Verify: `curl http://localhost:8000/api/health` → `{"status":"ok",...}` (interactive docs at `/docs`).
 
-**Getting your Puter token (one time, ~1 minute):**
-
-1. Sign in at **https://puter.com/dashboard** (free account).
-2. Go to **Account → API token → Create token**.
-3. Paste it into `backend/.env` as `PUTER_AUTH_TOKEN=...`.
-
-That's it — all AI usage now flows from your account; users get zero interruptions. *(Skip the token and the app still works: it falls back to asking each visitor to sign in to their own Puter account.)*
 
 ### 2. Frontend (React + Vite) — port 5173
 
@@ -73,26 +64,20 @@ npm run dev
 
 Open **http://localhost:5173**. The Vite dev server proxies `/api/*` to port 8000, so no CORS setup is needed.
 
-### 3. Try it
-
-- Click **Analyze a document** → **Load sample agreement** → **Analyze document**.
-- First-time users: a Puter sign-in popup appears (free account; AI usage is billed to the user's own Puter quota — not to you).
-
----
 
 ## How the AI integration works (developer-pays, no user sign-in)
 
 The backend owns AI credentials; visitors never sign in. Provider priority in `ai_proxy.py`:
 
 1. **`GEMINI_API_KEY`** (recommended, free tier) — Google AI Studio key via Gemini's official OpenAI-compatible endpoint (`generativelanguage.googleapis.com`). Create: https://aistudio.google.com/apikey
-2. **`PUTER_AUTH_TOKEN`** — Puter server-side API. ⚠️ Requires a **paid** Puter plan; free accounts get HTTP 402 (`subscription_required`) for server-side calls.
+
 
 | File | Responsibility |
 |---|---|
 | `backend/app/services/ai_proxy.py` | **The only provider-aware module.** Picks the provider from env, translates `google/…` model names per provider, maps upstream errors to typed codes. Swap/add providers here. |
 | `backend/app/routes/ai.py` | `POST /api/ai/chat` guard-rail: configured-check, per-client rate limit (`LEXSCOPE_AI_RATE_LIMIT`), payload size caps, `google/*` model allowlist. |
 | `frontend/src/services/backendAiClient.js` | Primary client — calls the backend proxy. |
-| `frontend/src/services/puterClient.js` | Fallback client — browser Puter.js (user-pays), used automatically only if every server route fails. |
+
 
 - Gemini is instructed to return **one strict JSON object** matching the LexScope schema (summary, document_type, overall_risk, key_takeaways, clauses[], red_flags[], obligations[], important_dates[], questions_to_ask[]). `utils/analysisSchema.js` re-validates/normalizes every field, so malformed AI output can never crash the UI.
 - Model chain: `google/gemini-2.5-flash` → fallback `google/gemini-2.0-flash` (edit `MODEL_CHAIN` in `frontend/src/services/legalAnalysisService.js`).
@@ -104,14 +89,14 @@ The backend owns AI credentials; visitors never sign in. Provider priority in `a
 
 1. **Landing page** — hero, how-it-works, capabilities, worked example, privacy section, disclaimer, CTA.
 2. **Document input** — paste text or upload `.txt`/`.md` (drag & drop), live word/char counts, sample document loader, clear/reset, validation for empty / too-short / oversized input (60k chars).
-3. **AI analysis** — structured JSON via Puter+Gemini with the full safety prompt (never invent clauses, quote only verbatim text, distinguish fact from interpretation, express uncertainty, never claim definitively illegal).
+3. **AI analysis** — structured JSON via Gemini with the full safety prompt (never invent clauses, quote only verbatim text, distinguish fact from interpretation, express uncertainty, never claim definitively illegal).
 4. **Results dashboard** — document header (type + overall attention level), plain-English summary, numbered key takeaways, risk overview with counts (labeled *AI-generated attention indicators, not legal judgments*), obligations, important dates.
 5. **Clause explorer** — every clause with original text beside the plain-language explanation, why it matters, and a "worth checking" action; filter by attention level and category; expand/collapse.
 6. **Document highlighting** — the original document with color-coded highlights per attention level; click any highlight for the side-by-side explanation. Matching uses exact whitespace/case/quote normalization, handles "…" excerpts, and a conservative fuzzy fallback; paraphrased excerpts are never highlighted wrongly.
 7. **Red flags** — severity-ranked flags with explanations of the *actual wording* (presence alone is never treated as a problem).
 8. **Questions to ask** — practical pre-signing questions with check-off and copy-all.
 9. **UX** — serif "legal brief" design system (paper/ink/laurel), hairline rules, strong typography, responsive, print-friendly report.
-10. **Error handling** — typed errors for Puter load failure, sign-in denied/cancelled, quota, timeout, network, invalid JSON (with one auto-repair), empty/malformed analysis, backend failures — each with human guidance and a retry path.
+
 
 ---
 
@@ -128,10 +113,7 @@ All errors use one envelope: `{"error": {"code", "message", "details"}}`.
 
 ## Configuration (backend `.env` — see `.env.example`)
 
-| Env var | Default | Meaning |
-|---|---|---|
-| `PUTER_AUTH_TOKEN` | — | **Your Puter token** (puter.com/dashboard → Account → API token). Enables developer-pays AI; users never sign in. |
-| `PUTER_AI_URL` | `https://api.puter.com/puterai/openai/v1/chat/completions` | Puter's OpenAI-compatible endpoint |
+
 | `LEXSCOPE_AI_MODEL` | `google/gemini-2.5-flash` | Default Gemini model |
 | `LEXSCOPE_AI_TIMEOUT_SECONDS` | `180` | Upstream AI timeout |
 | `LEXSCOPE_AI_RATE_LIMIT` | `8/600` | Per-IP AI calls per window (protects your quota) |
@@ -150,9 +132,6 @@ cd backend && python -m pytest tests/ -q
 # Frontend logic: JSON parsing, schema normalization, highlight location
 node scripts/test-logic.mjs
 
-# Full pipeline with a mocked window.puter (fake Gemini response)
-node scripts/test-pipeline.mjs
-```
 
 ## Adding PDF / DOCX later
 
@@ -179,7 +158,6 @@ On the frontend, only `AnalyzePage`'s accepted-file logic needs the new extensio
 
 - TXT/MD files only — PDF/DOCX are roadmap (extension point ready).
 - Analysis takes ~15–60s for typical documents (single Gemini call; model fallback chain mitigates outages).
-- Puter sign-in uses a popup: aggressive popup blockers (or embedded iframes) can block it — open the app in a normal tab if that happens. Free Puter quota applies per user.
 - Highlight matching can't locate paraphrased (non-verbatim) excerpts; those clauses simply aren't highlighted in the Document view.
 - English-language documents only (Gemini handles other languages, but the UI copy is English).
 - Attention levels are heuristic AI indicators, not legal judgments — stated throughout the UI.
