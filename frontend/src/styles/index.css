@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   LexScope design system — "legal brief" aesthetic.
+   Times New Roman typography, parchment & espresso browns, saddle accent,
+   hairline rules. Deliberately restrained: no gradients, no glassmorphism.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-display: "Times New Roman", Times, "Liberation Serif", Georgia, serif;
+  --font-sans: "Times New Roman", Times, "Liberation Serif", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Parchment */
+  --color-paper: #f7f1e5;
+  --color-paper-deep: #efe6d3;
+  --color-rule: #ddd0b6;
+  --color-rule-strong: #c6b492;
+
+  /* Ink — espresso browns */
+  --color-ink-950: #241608;
+  --color-ink-900: #2f1f10;
+  --color-ink-800: #3d2c19;
+  --color-ink-700: #4e3a24;
+  --color-ink-600: #64503a;
+  --color-ink-500: #7d6a52;
+  --color-ink-400: #9a8a72;
+  --color-ink-300: #bfb097;
+  --color-ink-200: #d8cdb8;
+  --color-ink-100: #e9e1d1;
+  --color-ink-50: #f3eee3;
+
+  /* Saddle brown — the accent */
+  --color-laurel-900: #4a2e12;
+  --color-laurel-800: #5c3a18;
+  --color-laurel-700: #70481f;
+  --color-laurel-600: #835726;
+  --color-laurel-500: #97672e;
+  --color-laurel-200: #e0c8a0;
+  --color-laurel-100: #ecdcbe;
+  --color-laurel-50: #f4ead7;
+
+  /* Attention levels (earthy, harmonised with the brown palette) */
+  --color-attention-high: #8f2c1e;
+  --color-attention-high-bg: #f8e9e3;
+  --color-attention-high-border: #e4c5ba;
+  --color-attention-medium: #8a5a0b;
+  --color-attention-medium-bg: #f8efda;
+  --color-attention-medium-border: #e9d6a6;
+  --color-attention-low: #4f6b35;
+  --color-attention-low-bg: #eef2e0;
+  --color-attention-low-border: #d2dcbc;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper text-ink-900 font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    @apply bg-laurel-200 text-ink-950;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  .overline-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-500;
+  }
+  .btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-ghost,
+  .btn-light {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2.5
+      text-sm font-medium transition-colors duration-150 select-none
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-laurel-600
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-ink-900 text-paper hover:bg-ink-700;
+  }
+  .btn-accent {
+    @apply bg-laurel-700 text-white hover:bg-laurel-800;
+  }
+  .btn-ghost {
+    @apply border border-rule-strong bg-transparent text-ink-700 hover:bg-paper-deep;
+  }
+  .btn-light {
+    @apply border border-paper/30 bg-transparent text-paper hover:bg-ink-700;
+  }
+  .card {
+    @apply rounded-md border border-rule bg-white;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium;
+  }
+  .prose-legal {
+    @apply font-display text-[13.5px] leading-6 text-ink-800;
+  }
+}
+
+/* Print: make reports shareable on paper */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
