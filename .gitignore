@@ -1,0 +1,21 @@
+# --- Node / frontend ---
+node_modules/
+dist/
+build/
+*.log
+.vite/
+
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# --- Environment & secrets (should never exist in this project, but just in case) ---
+.env
+.env.*
+
+# --- OS ---
+.DS_Store
+Thumbs.db
