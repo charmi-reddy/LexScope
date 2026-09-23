@@ -32,7 +32,7 @@ LexScope is an AI-powered legal document understanding platform. Paste an employ
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Auth model — developer pays, users never sign in:** AI credentials live only in the backend environment (`.env`). Visitors analyze documents with zero accounts and zero popups. Provider priority in the backend: `GEMINI_API_KEY` (Google AI Studio, free tier — recommended) first, then `PUTER_AUTH_TOKEN` (requires a paid Puter plan). If every server route fails, the frontend automatically falls back to the browser Puter.js flow so the app never hard-fails.
+**Auth model — developer pays, users never sign in:** AI credentials live only in the backend environment (`.env`). Visitors analyze documents with zero accounts and zero popups. Provider priority in the backend: `GEMINI_API_KEY` (Google AI Studio, free tier — recommended) first.
 
 ---
 
