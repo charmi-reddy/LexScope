@@ -1,14 +1,5 @@
-"""LexScope API entrypoint.
-
-Runs a small, stateless FastAPI service that:
-  1. extracts/cleans document text (TXT in v1),
-  2. validates size/content rules,
-  3. returns structured metadata.
-
-It intentionally does NOT talk to Gemini — that happens in the user's browser
-via Puter.js (see frontend/src/services/). Keeping AI out of the backend means
-no API keys, no proxying of documents, and nothing to store.
-"""
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 from __future__ import annotations
 
 import logging
@@ -27,7 +18,7 @@ logger = logging.getLogger("lexscope")
 app = FastAPI(
     title=APP_NAME,
     version=APP_VERSION,
-    description="Document extraction & validation for LexScope — AI analysis runs client-side via Puter.js + Gemini.",
+    description="Document extraction & validation for LexScope — AI analysis runs client-side via Gemini.",
     docs_url="/docs",
 )
 
@@ -81,11 +72,14 @@ app.include_router(health.router, prefix=API_PREFIX, tags=["health"])
 app.include_router(documents.router, prefix=API_PREFIX, tags=["documents"])
 app.include_router(ai.router, prefix=API_PREFIX, tags=["ai"])
 
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
-@app.get("/")
-async def root() -> dict:
-    return {"service": APP_NAME, "version": APP_VERSION, "docs": "/docs"}
-
+if FRONTEND_DIST.exists():
+    app.mount(
+        "/",
+        StaticFiles(directory=FRONTEND_DIST, html=True),
+        name="frontend",
+    )
 
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
