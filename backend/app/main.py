@@ -1,13 +1,13 @@
-from pathlib import Path
-from fastapi.staticfiles import StaticFiles
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import API_PREFIX, APP_NAME, APP_VERSION, CORS_ORIGINS
 from app.routes import ai, documents, health
