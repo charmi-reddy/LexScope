@@ -40,8 +40,7 @@ export default function PrivacySection() {
         </div>
 
         <p className="mt-8 max-w-3xl text-xs leading-5 text-ink-500">
-          Documents are sent over HTTPS to the model provider for analysis and are subject to the
-          Puter and Google AI terms. Avoid uploading information you are not comfortable sharing
+          Documents are sent over HTTPS to the model provider for analysis and are subject to Google AI terms. Avoid uploading information you are not comfortable sharing
           with those services.
         </p>
       </div>

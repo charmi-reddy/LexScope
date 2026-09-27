@@ -40,9 +40,22 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
-          <DisclaimerNote />
-          <span className="whitespace-nowrap">© 2026 LexScope · Hackathon build</span>
+        <div className="mt-10 border-t border-ink-800 pt-6 text-xs text-ink-500">
+          <div className="flex flex-col items-center justify-center gap-3 text-center">
+            <DisclaimerNote />
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-ink-500">
+              <span>Made by</span>
+              <a
+                href="https://www.linkedin.com/in/charmi-reddy-p-b2aaa2294"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-ink-300 transition-colors hover:text-paper hover:underline underline-offset-2"
+              >
+                P Charmi Reddy
+              </a>
+            </div>
+            <span className="whitespace-nowrap">© 2026 LexScope</span>
+          </div>
         </div>
       </div>
     </footer>
