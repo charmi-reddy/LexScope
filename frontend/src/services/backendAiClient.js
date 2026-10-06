@@ -1,12 +1,9 @@
 /**
  * Backend AI proxy client — the PRIMARY AI route (developer-pays).
  *
- * Talks to the FastAPI backend (`POST /api/ai/chat`), which relays requests
- * to Google Gemini via Puter using a server-side token. End users never
- * sign in and never see credentials.
- *
- * Interface matches services/puterClient.js (`chat`, `AiClientError`), so
- * legalAnalysisService can switch between them without knowing the provider.
+ * Talks to the FastAPI backend (`POST /api/ai/chat`) which relays requests
+ * to Google Gemini using a server-side key. End users never sign in and
+ * never see credentials.
  */
 import { AiClientError } from './aiErrors.js'
 
@@ -15,7 +12,6 @@ function mapBackendCode(code) {
     ai_not_configured: 'AI_NOT_CONFIGURED',
     rate_limited: 'RATE_LIMITED',
     ai_token_invalid: 'AI_TOKEN_INVALID',
-    ai_subscription_required: 'AI_SUBSCRIPTION_REQUIRED',
     quota: 'QUOTA',
     timeout: 'TIMEOUT',
     ai_upstream_unreachable: 'AI_UPSTREAM_UNREACHABLE',

@@ -1,6 +1,6 @@
 """Tests for the developer-pays AI proxy routes.
 
-All upstream calls are mocked — no network, no real Puter token needed.
+All upstream calls are mocked — no network needed.
 Run: cd backend && python -m pytest tests/ -q
 """
 from __future__ import annotations
@@ -88,41 +88,6 @@ def test_upstream_error_mapping(monkeypatch):
     assert r.json()["error"]["code"] == "ai_token_invalid"
 
 
-def test_free_plan_402_mapping(monkeypatch):
-    """Puter free plan: server-side calls get HTTP 402 → typed, actionable error."""
-    import asyncio
-
-    from app.services import ai_proxy
-
-    monkeypatch.setattr(ai_proxy, "PUTER_AUTH_TOKEN", "dummy-token-for-test")
-
-    class FakeResponse:
-        status_code = 402
-        text = '{"error": "A subscription is required for this action"}'
-
-        def json(self):
-            return {"error": "A subscription is required for this action"}
-
-    class FakeClient:
-        def __init__(self, *a, **k):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *a):
-            return False
-
-        async def post(self, *a, **k):
-            return FakeResponse()
-
-    monkeypatch.setattr(ai_proxy.httpx, "AsyncClient", FakeClient)
-
-    with pytest.raises(ai_proxy.AiUpstreamError) as excinfo:
-        asyncio.run(ai_proxy.chat_completion([{"role": "user", "content": "x"}]))
-    assert excinfo.value.code == "AI_SUBSCRIPTION_REQUIRED"
-
-
 def test_payload_size_guard(monkeypatch):
     monkeypatch.setattr(ai_proxy, "is_configured", lambda: True)
     # Two messages under the per-message cap but over the total-request guard.
@@ -143,13 +108,9 @@ def test_model_validation_function():
 
 def test_provider_selection(monkeypatch):
     monkeypatch.setattr(ai_proxy, "GEMINI_API_KEY", "k1")
-    monkeypatch.setattr(ai_proxy, "PUTER_AUTH_TOKEN", "t1")
-    assert ai_proxy.active_provider() == "gemini"  # gemini wins when both set
+    assert ai_proxy.active_provider() == "gemini"
 
     monkeypatch.setattr(ai_proxy, "GEMINI_API_KEY", None)
-    assert ai_proxy.active_provider() == "puter"
-
-    monkeypatch.setattr(ai_proxy, "PUTER_AUTH_TOKEN", None)
     assert ai_proxy.active_provider() == "none"
     assert ai_proxy.is_configured() is False
 
@@ -161,7 +122,6 @@ def test_gemini_provider_strips_prefix_and_uses_key(monkeypatch):
     from app.services import ai_proxy
 
     monkeypatch.setattr(ai_proxy, "GEMINI_API_KEY", "test-key")
-    monkeypatch.setattr(ai_proxy, "PUTER_AUTH_TOKEN", None)
 
     captured = {}
 

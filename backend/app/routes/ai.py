@@ -1,4 +1,4 @@
-"""AI routes — a thin, guarded proxy between the frontend and Puter/Gemini.
+"""AI routes — a thin, guarded proxy between the frontend and Gemini.
 
 Guards, in order:
   1. Token configured?            → 503 ai_not_configured

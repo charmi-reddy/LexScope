@@ -1,8 +1,7 @@
 """LexScope backend configuration.
 
 All limits are environment-overridable so the app can be tuned without code
-changes. No secrets are configured here on purpose — the Gemini integration
-runs in the browser through Puter.js (user-pays, no API keys).
+changes. No secrets are configured here on purpose.
 """
 import os
 
@@ -31,23 +30,17 @@ PLANNED_EXTENSIONS = {
 }
 
 # --- AI (developer-pays mode) ------------------------------------------------
-# Provider priority: GEMINI_API_KEY (Google AI Studio, free tier) first, then
-# PUTER_AUTH_TOKEN (Puter server-side API, requires a paid Puter plan).
-# Both are server-side secrets — end users never sign in or see credentials.
+# Server-side Gemini key. End users never sign in or see credentials.
 GEMINI_API_KEY = (os.environ.get("GEMINI_API_KEY") or "").strip() or None
 GEMINI_AI_URL = os.environ.get(
     "GEMINI_AI_URL",
     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
 )
-PUTER_AUTH_TOKEN = (os.environ.get("PUTER_AUTH_TOKEN") or "").strip() or None
-PUTER_AI_URL = os.environ.get(
-    "PUTER_AI_URL", "https://api.puter.com/puterai/openai/v1/chat/completions"
-)
 DEFAULT_AI_MODEL = os.environ.get("LEXSCOPE_AI_MODEL", "google/gemini-2.5-flash")
 AI_TIMEOUT_SECONDS = int(os.environ.get("LEXSCOPE_AI_TIMEOUT_SECONDS", 180))
 
 # Simple per-client rate limit for AI calls, format "N requests / W seconds".
-# Protects your Puter quota from hammering. Example: "8/600" = 8 per 10 min.
+# Protects your Gemini quota from hammering. Example: "8/600" = 8 per 10 min.
 AI_RATE_LIMIT = os.environ.get("LEXSCOPE_AI_RATE_LIMIT", "8/600")
 
 # --- CORS -------------------------------------------------------------------

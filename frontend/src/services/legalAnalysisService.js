@@ -1,12 +1,7 @@
 /**
  * Legal analysis orchestration: prompt construction, JSON parsing, retry.
  *
- * Primary AI route: the FastAPI backend proxy (developer-pays — your Puter
- * token on the server, no user sign-in). If the proxy is unavailable or not
- * configured, it automatically falls back to the browser Puter.js client
- * (user-pays) so the app still works.
- *
- * Provider-agnostic: it talks exclusively to the two client modules.
+ * AI route: the FastAPI backend proxy (developer-pays, no user sign-in).
  */
 import { chat as backendChat } from './backendAiClient.js'
 import { AiClientError } from './aiErrors.js'
@@ -17,34 +12,6 @@ export const MODEL_CHAIN = ['google/gemini-2.5-flash', 'google/gemini-2.0-flash'
 
 const TEMPERATURE = 0.2
 const ANALYSIS_TIMEOUT_MS = 180000
-
-// Proxy-level failures worth falling back to the browser (user-pays) route.
-const FALLBACK_CODES = new Set([
-  'AI_NOT_CONFIGURED',
-  'NETWORK',
-  'AI_TOKEN_INVALID',
-  'AI_SUBSCRIPTION_REQUIRED',
-  'AI_UPSTREAM_UNREACHABLE',
-  'AI_UPSTREAM',
-  'QUOTA',
-])
-
-/**
- * Tries the backend proxy first; on proxy-level failure, falls back to the
- * in-browser Puter client. Both expose the same `chat()` interface.
- */
-async function chatViaPrimaryRoute(params) {
-  try {
-    return await backendChat(params)
-  } catch (err) {
-    const fallbackWorthy = err instanceof AiClientError && FALLBACK_CODES.has(err.code)
-    if (!fallbackWorthy) throw err
-    const puter = await import('./puterClient.js')
-    // Runs within the original click-handler chain, so the popup is allowed.
-    await puter.ensureSignedIn()
-    return puter.chat(params)
-  }
-}
 
 export const ANALYSIS_STAGES = {
   connect: 'Connecting to Gemini',
@@ -163,7 +130,7 @@ export async function analyzeLegalDocument({ text, name, onStage }) {
   for (const model of MODEL_CHAIN) {
     try {
       notify('analyzing')
-      const raw = await chatViaPrimaryRoute({
+      const raw = await backendChat({
         messages,
         model,
         temperature: TEMPERATURE,
@@ -177,7 +144,7 @@ export async function analyzeLegalDocument({ text, name, onStage }) {
       } catch (err) {
         if (err instanceof AiClientError && err.code === 'INVALID_JSON') {
           // One automatic repair round with the same conversation.
-          const repaired = await chatViaPrimaryRoute({
+          const repaired = await backendChat({
             messages: [...messages, { role: 'assistant', content: String(raw).slice(0, 4000) }, { role: 'user', content: REPAIR_PROMPT }],
             model,
             temperature: TEMPERATURE,
