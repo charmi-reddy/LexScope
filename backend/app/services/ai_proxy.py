@@ -1,13 +1,7 @@
 """AI proxy service — the ONLY backend module that talks to AI providers.
 
-Developer-pays mode with two interchangeable providers (priority order):
-  1. "gemini" — Google AI Studio key (GEMINI_API_KEY) via Gemini's official
-     OpenAI-compatible endpoint. Free tier available; recommended default.
-  2. "puter"  — Puter server-side API (PUTER_AUTH_TOKEN, created at
-     puter.com/dashboard). Requires a paid Puter plan.
-
-Set via backend/.env — see .env.example. Swap point: replace this file's
-`chat_completion` to use any other provider; routes and frontend stay put.
+Developer-pays mode uses Google Gemini (GEMINI_API_KEY) through Gemini's
+OpenAI-compatible endpoint.
 
 Privacy: request messages are never written to logs or disk; only metadata
 (provider, model, status codes, timings) is logged.
@@ -26,8 +20,6 @@ from app.config import (
     DEFAULT_AI_MODEL,
     GEMINI_AI_URL,
     GEMINI_API_KEY,
-    PUTER_AI_URL,
-    PUTER_AUTH_TOKEN,
 )
 
 logger = logging.getLogger("lexscope.ai")
@@ -41,18 +33,16 @@ class AiUpstreamError(Exception):
 
     def __init__(self, code: str, message: str, status: int = 502, details: Optional[dict[str, Any]] = None):
         super().__init__(message)
-        self.code = code  # AI_TOKEN_INVALID | AI_SUBSCRIPTION_REQUIRED | QUOTA | MODEL_UNAVAILABLE | TIMEOUT | AI_UPSTREAM_UNREACHABLE | AI_UPSTREAM
+        self.code = code  # AI_TOKEN_INVALID | QUOTA | MODEL_UNAVAILABLE | TIMEOUT | AI_UPSTREAM_UNREACHABLE | AI_UPSTREAM
         self.message = message
         self.status = status
         self.details = details or {}
 
 
 def active_provider() -> str:
-    """Which provider will serve AI calls right now: 'gemini' | 'puter' | 'none'."""
+    """Which provider will serve AI calls right now: 'gemini' | 'none'."""
     if GEMINI_API_KEY:
         return "gemini"
-    if PUTER_AUTH_TOKEN:
-        return "puter"
     return "none"
 
 
@@ -71,19 +61,13 @@ def validate_model(model: Optional[str]) -> str:
     return resolved
 
 
-def _endpoint_and_headers(provider: str, resolved_model: str) -> tuple[str, dict[str, str], str]:
+def _endpoint_and_headers(resolved_model: str) -> tuple[str, dict[str, str], str]:
     """Returns (url, headers, model_for_provider)."""
-    if provider == "gemini":
-        # Gemini's OpenAI-compatible endpoint uses unprefixed model names.
-        return (
-            GEMINI_AI_URL,
-            {"Authorization": f"Bearer {GEMINI_API_KEY}", "Content-Type": "application/json"},
-            resolved_model.removeprefix("google/"),
-        )
+    # Gemini's OpenAI-compatible endpoint uses unprefixed model names.
     return (
-        PUTER_AI_URL,
-        {"Authorization": f"Bearer {PUTER_AUTH_TOKEN}", "Content-Type": "application/json"},
-        resolved_model,
+        GEMINI_AI_URL,
+        {"Authorization": f"******", "Content-Type": "application/json"},
+        resolved_model.removeprefix("google/"),
     )
 
 
@@ -103,7 +87,7 @@ async def chat_completion(
             status=503,
         )
     resolved_model = validate_model(model)
-    url, headers, provider_model = _endpoint_and_headers(provider, resolved_model)
+    url, headers, provider_model = _endpoint_and_headers(resolved_model)
 
     payload: dict[str, Any] = {"model": provider_model, "messages": messages}
     if temperature is not None:
@@ -140,12 +124,6 @@ async def chat_completion(
         raise AiUpstreamError(
             "AI_TOKEN_INVALID",
             f"The configured {provider} credentials were rejected. Create a fresh key and update the server configuration (.env).",
-            status=502,
-        )
-    if response.status_code == 402:
-        raise AiUpstreamError(
-            "AI_SUBSCRIPTION_REQUIRED",
-            "The Puter account behind this server is on the free plan, which doesn't allow server-side (developer-pays) AI calls. Upgrade the Puter subscription, or configure GEMINI_API_KEY (free tier) — until then LexScope falls back to visitor sign-in.",
             status=502,
         )
     if response.status_code == 429:

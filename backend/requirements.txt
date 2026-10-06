@@ -1,5 +1,5 @@
 # LexScope backend — kept intentionally minimal.
-# The AI key/lock lives here: PUTER_AUTH_TOKEN is provided via environment
+# The AI key/lock lives here: GEMINI_API_KEY is provided via environment
 # (.env) — see .env.example. No AI credentials are ever hardcoded.
 fastapi>=0.115,<1.0
 uvicorn[standard]>=0.30

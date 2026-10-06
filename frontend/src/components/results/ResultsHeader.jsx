@@ -43,7 +43,7 @@ export default function ResultsHeader({ analysis, source, meta }) {
         <p className="mt-6 border-t border-ink-800 pt-4 text-[11.5px] text-ink-500">
           {meta?.model && (
             <>
-              Analyzed with <span className="text-ink-300">{meta.model}</span> via Puter ·{' '}
+              Analyzed with <span className="text-ink-300">{meta.model}</span> via backend Gemini proxy ·{' '}
             </>
           )}
           {meta?.durationMs != null && <>completed in {(meta.durationMs / 1000).toFixed(0)}s · </>}

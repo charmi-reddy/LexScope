@@ -1,15 +1,13 @@
 /**
- * End-to-end pipeline test with a MOCKED window.puter.
- * Simulates exactly what the browser does: analyzeLegalDocument → puter.ai.chat
- * (fake Gemini response, code-fenced, slightly messy on purpose) → parse →
- * normalize → analysis result.
+ * End-to-end pipeline test with a mocked backend AI response.
+ * Simulates exactly what the browser does: analyzeLegalDocument → backend chat
+ * (fake Gemini response, code-fenced, slightly messy on purpose) → parse → normalize → analysis result.
  *
  * Run: node scripts/test-pipeline.mjs
  */
 import { analyzeLegalDocument } from '../frontend/src/services/legalAnalysisService.js'
 import { SAMPLE_DOCUMENT } from '../frontend/src/utils/sampleDocument.js'
 
-// --- Fake Puter global (mirrors the real window.puter surface we use) -------
 const GEMINI_PAYLOAD = `Here is the analysis you requested:
 
 \`\`\`json
