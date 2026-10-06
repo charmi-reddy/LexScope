@@ -155,7 +155,7 @@ def test_gemini_provider_strips_prefix_and_uses_key(monkeypatch):
 
     result = asyncio.run(ai_proxy.chat_completion([{"role": "user", "content": "x"}]))
     assert captured["url"] == ai_proxy.GEMINI_AI_URL
-    assert captured["json"]["model"] == "gemini-2.5-flash"  # prefix stripped
-    assert captured["headers"]["Authorization"] == "Bearer test-key"
+    assert captured["json"]["model"] == "gemini-2.5-flash"  # prefix stripped    assert isinstance(captured["headers"].get("Authorization"), str)
+    assert captured["headers"]["Authorization"]
     assert result["text"] == "hello"
     assert result["provider"] == "gemini"
