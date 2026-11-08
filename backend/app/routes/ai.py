@@ -73,11 +73,12 @@ def _parse_rate_limit(raw: str) -> tuple[int, int]:
 @router.get("/ai/status")
 async def ai_status() -> dict:
     """Lets the frontend know whether server-side AI is configured (no secrets)."""
+    configured = ai_proxy.is_configured()
     provider = ai_proxy.active_provider()
-    reason = ai_proxy.config_error_reason() if provider == "none" else None
+    reason = ai_proxy.config_error_reason() if not configured else None
     return {
-        "configured": provider != "none",
-        "provider": provider if provider != "none" else None,
+        "configured": configured,
+        "provider": provider if configured else None,
         "model": DEFAULT_AI_MODEL,
         "reason": reason,
     }

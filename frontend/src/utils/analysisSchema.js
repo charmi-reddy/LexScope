@@ -78,6 +78,7 @@ function normalizeRedFlag(raw, index) {
     severity: normalizeRisk(r.severity),
     explanation: asString(r.explanation),
     related_clause: asString(r.related_clause || r.relatedClause),
+    supporting_quote: asString(r.supporting_quote || r.supportingQuote),
   }
 }
 

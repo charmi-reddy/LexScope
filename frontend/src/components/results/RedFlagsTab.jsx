@@ -1,9 +1,10 @@
 import { FlagTriangleRight, ShieldCheck } from 'lucide-react'
 import RiskBadge, { riskStyle } from '../ui/RiskBadge'
+import { locateQuote } from '../../utils/highlight.js'
 
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 }
 
-export default function RedFlagsTab({ redFlags }) {
+export default function RedFlagsTab({ redFlags, docText, onShowInDocument }) {
   if (!redFlags.length) {
     return (
       <div className="card flex items-start gap-4 p-8">
@@ -37,6 +38,19 @@ export default function RedFlagsTab({ redFlags }) {
 
       {sorted.map((flag) => {
         const s = riskStyle(flag.severity)
+        const quoteText = (flag.supporting_quote || '').trim()
+        const quoteStatus = quoteText && docText ? locateQuote(docText, quoteText) : { status: 'none', start: null, end: null }
+        const quoteChip = {
+          exact: 'Verified in document',
+          approximate: 'Matched approximately',
+          not_found: 'Quote not found',
+        }[quoteStatus.status]
+        const quoteChipClass = {
+          exact: 'border-laurel-200 bg-laurel-50 text-laurel-800',
+          approximate: 'border-attention-medium-border bg-attention-medium-bg text-attention-medium',
+          not_found: 'border-attention-medium-border bg-attention-medium-bg text-attention-high',
+        }[quoteStatus.status] || ''
+
         return (
           <article key={flag.id} className="card overflow-hidden">
             <div className={`border-b border-l-4 px-5 py-3.5 ${s.cls}`}>
@@ -53,6 +67,36 @@ export default function RedFlagsTab({ redFlags }) {
                 <p className="mt-3 text-[12.5px] text-ink-500">
                   Related clause: <span className="font-medium text-ink-700">{flag.related_clause}</span>
                 </p>
+              )}
+
+              {quoteText ? (
+                <div className="mt-4 rounded-md border border-rule bg-paper px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="overline-label">Supporting quote</p>
+                    {quoteStatus.status !== 'none' && quoteChip && (
+                      <span className={`chip ${quoteChipClass}`}>{quoteChip}</span>
+                    )}
+                  </div>
+                  <blockquote className="prose-legal mt-2 rounded-md border-l-4 border-rule bg-white px-3 py-2.5 text-[13.5px] text-ink-700">
+                    {quoteText}
+                  </blockquote>
+                  {quoteStatus.status === 'not_found' && (
+                    <p className="mt-2 text-[12px] font-medium text-attention-high">
+                      Quote not found in document - treat this flag with caution.
+                    </p>
+                  )}
+                  {(quoteStatus.status === 'exact' || quoteStatus.status === 'approximate') && onShowInDocument && (
+                    <button
+                      type="button"
+                      onClick={() => onShowInDocument({ start: quoteStatus.start, end: quoteStatus.end, id: flag.id })}
+                      className="mt-3 text-[12px] font-medium text-laurel-800 hover:text-laurel-900"
+                    >
+                      Show in document
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-4 text-[12.5px] text-ink-500">No quote - this flag is about something missing or the AI gave no source.</p>
               )}
             </div>
           </article>

@@ -28,6 +28,7 @@ Core rules you must always follow:
 - Explain legal jargon in plain English a non-lawyer understands. Define terms like "indemnify", "liquidated damages", or "sole discretion" when you use them in explanations.
 - Identify provisions that are potentially unfavorable, unusual, one-sided, or easy to miss — but analyze the ACTUAL wording: do not treat a provision as problematic merely because of its category.
 - Never claim something is definitively illegal or unlawful. Say it "deserves attention", "may be unenforceable in some jurisdictions", or "is worth questioning".
+- A flag about a present provision must have a supporting_quote copied character-for-character from the document. A flag about a missing provision must leave supporting_quote empty and say in the explanation that the provision is absent.
 - Express uncertainty openly when the wording is ambiguous or you are unsure.
 - Never fabricate missing information. If the document omits something important (e.g. no notice period, no liability cap), say it is absent rather than guessing.
 - The document may not be a legal document at all — if so, say so plainly in the summary and document_type, and analyze whatever structure it does have.
@@ -58,8 +59,9 @@ JSON schema:
     {
       "title": "e.g. 'Unlimited liability', 'Automatic renewal', 'Broad IP transfer'",
       "severity": "low | medium | high",
-      "explanation": "WHY this specific wording deserves attention, citing what the document actually says — presence alone is not a problem",
-      "related_clause": "title of the related clause if one exists, else empty string"
+      "explanation": "WHY this specific wording deserves attention, citing what the document actually says — presence alone is not a problem. If it is absent, say it is absent and leave supporting_quote empty.",
+      "related_clause": "title of the related clause if one exists, else empty string",
+      "supporting_quote": "VERBATIM contiguous excerpt from the document (8-60 words) that triggered this flag. Empty string if the flag is about something ABSENT from the document (e.g. no liability cap)."
     }
   ],
   "obligations": ["short statements of what each party must do or not do, prefixed with the party, e.g. 'Employee: must report any side income'"],

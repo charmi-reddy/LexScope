@@ -3,7 +3,7 @@ import { FileText, Plus, Printer } from 'lucide-react'
 import RiskBadge from '../ui/RiskBadge'
 import { formatNumber } from '../../utils/text.js'
 
-export default function ResultsHeader({ analysis, source, meta }) {
+export default function ResultsHeader({ analysis, source, meta, citationStats }) {
   const navigate = useNavigate()
   const stats = source?.stats
 
@@ -41,6 +41,12 @@ export default function ResultsHeader({ analysis, source, meta }) {
         </div>
 
         <p className="mt-6 border-t border-ink-800 pt-4 text-[11.5px] text-ink-500">
+          {citationStats && citationStats.total > 0 && (
+            <>
+              <span className="text-ink-300">Citations:</span> {citationStats.verified} of {citationStats.total} quotes verified in the document
+              {citationStats.notFound > 0 ? ` · ${citationStats.notFound} not found` : ''}.{' '}
+            </>
+          )}
           {meta?.model && (
             <>
               Analyzed with <span className="text-ink-300">{meta.model}</span> via backend Gemini proxy ·{' '}

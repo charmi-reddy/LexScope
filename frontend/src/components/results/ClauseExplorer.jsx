@@ -2,11 +2,24 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, Quote } from 'lucide-react'
 import RiskBadge, { riskStyle } from '../ui/RiskBadge'
 import { CATEGORIES, categoryLabel } from '../../utils/analysisSchema.js'
+import { locateQuote } from '../../utils/highlight.js'
 
 const RISK_ORDER = { high: 0, medium: 1, low: 2 }
 
-function ClauseCard({ clause, index, open, onToggle }) {
+function ClauseCard({ clause, index, open, onToggle, docText }) {
   const s = riskStyle(clause.risk_level)
+  const quoteStatus = docText ? locateQuote(docText, clause.original_text || '') : { status: 'none' }
+  const statusLabel = {
+    exact: 'Verified in document',
+    approximate: 'Matched approximately',
+    not_found: 'Quote not found',
+  }[quoteStatus.status]
+  const statusClass = {
+    exact: 'border-laurel-200 bg-laurel-50 text-laurel-800',
+    approximate: 'border-attention-medium-border bg-attention-medium-bg text-attention-medium',
+    not_found: 'border-attention-medium-border bg-attention-medium-bg text-attention-high',
+  }[quoteStatus.status] || ''
+
   return (
     <article className={`card overflow-hidden transition-shadow ${open ? 'shadow-sm' : ''}`}>
       <button
@@ -41,7 +54,14 @@ function ClauseCard({ clause, index, open, onToggle }) {
         <div className="border-t border-rule px-5 py-5 sm:px-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <div>
-              <p className="overline-label">In the document</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="overline-label">In the document</p>
+                {quoteStatus.status !== 'none' && statusLabel && (
+                  <span className={`chip ${statusClass}`}>
+                    {statusLabel}
+                  </span>
+                )}
+              </div>
               {clause.original_text ? (
                 <blockquote className={`prose-legal mt-3 rounded-md border-l-4 px-4 py-3.5 ${s.cls}`}>
                   <Quote size={13} className="mb-1.5 opacity-60" aria-hidden />
@@ -77,7 +97,7 @@ function ClauseCard({ clause, index, open, onToggle }) {
   )
 }
 
-export default function ClauseExplorer({ clauses }) {
+export default function ClauseExplorer({ clauses, docText }) {
   const [riskFilter, setRiskFilter] = useState('all')
   const [category, setCategory] = useState('all')
   const [openIds, setOpenIds] = useState(() => new Set())
@@ -185,6 +205,7 @@ export default function ClauseExplorer({ clauses }) {
               index={i}
               open={openIds.has(clause.id)}
               onToggle={() => toggle(clause.id)}
+              docText={docText}
             />
           ))
         )}

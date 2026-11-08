@@ -113,17 +113,21 @@ function fuzzyLocate(docState, excerpt) {
   }
 
   let best = { ratio: 0, start: -1, ties: 0 }
+  const excerptKeyTokens = new Set(excerptTokens.map(({ token }) => token))
   for (let i = 0; i < docState.tokens.length; i++) {
     addToken(docState.tokens[i].token, +1)
     if (i >= m) addToken(docState.tokens[i - m].token, -1)
     if (i >= m - 1) {
       const ratio = matched / m
+      const windowKeyHits = [...excerptKeyTokens].filter((token) => (windowCounts.get(token) || 0) > 0).length
+      const setRatio = windowKeyHits / Math.max(excerptKeyTokens.size, 1)
+      const score = Math.max(ratio, setRatio)
       const winStart = docState.tokens[i - m + 1].start
-      if (ratio > best.ratio + 0.001) best = { ratio, start: winStart, ties: 0 }
-      else if (Math.abs(ratio - best.ratio) <= 0.001 && ratio > 0.5) best.ties++
+      if (score > best.ratio + 0.001) best = { ratio: score, start: winStart, ties: 0 }
+      else if (Math.abs(score - best.ratio) <= 0.001 && score > 0.5) best.ties++
     }
   }
-  if (best.ratio < 0.78 || best.ties > 2 || best.start === -1) return null
+  if (best.ratio < 0.5 || best.ties > 3 || best.start === -1) return null
   // Find the window end by replaying m tokens from the winning start offset.
   let count = 0
   let end = docState.text.length
@@ -140,12 +144,51 @@ function fuzzyLocate(docState, excerpt) {
 }
 
 /**
+ * Returns a quote-localization result for a single excerpt.
+ * status: 'exact' | 'approximate' | 'not_found' | 'none'
+ */
+export function locateQuote(docText, quote) {
+  if (!quote || !String(quote).trim()) {
+    return { status: 'none', start: null, end: null, match: null }
+  }
+
+  if (!docText) {
+    return { status: 'not_found', start: null, end: null, match: null }
+  }
+
+  const docState = {
+    text: docText,
+    ...normalizeWithMap(docText),
+    tokens: tokenizeWithOffsets(docText),
+  }
+
+  const excerpt = String(quote).trim()
+  const hit = exactLocate(docState, excerpt) || segmentedLocate(docState, excerpt) || fuzzyLocate(docState, excerpt)
+  if (!hit) {
+    return { status: 'not_found', start: null, end: null, match: null }
+  }
+
+  return {
+    status: hit.match === 'exact' ? 'exact' : 'approximate',
+    start: hit.start,
+    end: hit.end,
+    match: hit.match,
+  }
+}
+
+/**
  * @param {string} docText
  * @param {Array} clauses  normalized clauses (id, original_text, risk_level)
- * @returns {{ highlights: Array<{id, start, end, riskLevel, match}>, located: number }}
+ * @returns {{
+ *   highlights: Array<{id, start, end, riskLevel, match}>,
+ *   located: number,
+ *   citations: Record<string, {status, start, end, match}>,
+ *   locatedCount: number,
+ *   notFoundIds: string[]
+ * }}
  */
 export function locateClauses(docText, clauses) {
-  if (!docText) return { highlights: [], located: 0 }
+  if (!docText) return { highlights: [], located: 0, citations: {}, locatedCount: 0, notFoundIds: [] }
   const docState = {
     text: docText,
     ...normalizeWithMap(docText),
@@ -153,14 +196,35 @@ export function locateClauses(docText, clauses) {
   }
 
   const highlights = []
+  const citations = {}
+  const notFoundIds = []
+  let locatedCount = 0
+
   for (const clause of clauses) {
     const excerpt = (clause.original_text || '').trim()
-    if (excerpt.length < 8) continue
-    const hit =
-      exactLocate(docState, excerpt) ||
-      segmentedLocate(docState, excerpt) ||
-      fuzzyLocate(docState, excerpt)
-    if (hit) highlights.push({ id: clause.id, start: hit.start, end: hit.end, riskLevel: clause.risk_level, match: hit.match })
+    if (excerpt.length < 8) {
+      citations[clause.id] = { status: 'none', start: null, end: null, match: null }
+      notFoundIds.push(clause.id)
+      continue
+    }
+
+    const hit = exactLocate(docState, excerpt) || segmentedLocate(docState, excerpt) || fuzzyLocate(docState, excerpt)
+    const citation = hit
+      ? {
+          status: hit.match === 'exact' ? 'exact' : 'approximate',
+          start: hit.start,
+          end: hit.end,
+          match: hit.match,
+        }
+      : { status: 'not_found', start: null, end: null, match: null }
+
+    citations[clause.id] = citation
+    if (citation.status === 'exact' || citation.status === 'approximate') {
+      locatedCount += 1
+      highlights.push({ id: clause.id, start: citation.start, end: citation.end, riskLevel: clause.risk_level, match: citation.match })
+    } else {
+      notFoundIds.push(clause.id)
+    }
   }
 
   // Resolve overlaps: sort by start, prefer longer/high-attention spans.
@@ -181,5 +245,5 @@ export function locateClauses(docText, clauses) {
     }
   }
 
-  return { highlights: kept, located: kept.length }
+  return { highlights: kept, located: kept.length, citations, locatedCount, notFoundIds }
 }

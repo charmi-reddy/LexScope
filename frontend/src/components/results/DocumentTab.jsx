@@ -10,13 +10,17 @@ const HL_CLASS = {
   low: 'bg-attention-low-bg text-attention-low decoration-attention-low-border',
 }
 
-export default function DocumentTab({ docText, clauses }) {
-  const { highlights, located } = useMemo(() => locateClauses(docText, clauses), [docText, clauses])
+export default function DocumentTab({ docText, clauses, selectedSpan, onSelectSpan }) {
+  const { highlights, located, locatedCount, notFoundIds } = useMemo(() => locateClauses(docText, clauses), [docText, clauses])
   const [selectedId, setSelectedId] = useState(null)
 
   const clauseById = useMemo(() => Object.fromEntries(clauses.map((c) => [c.id, c])), [clauses])
   const selected = selectedId ? clauseById[selectedId] : null
   const selectedHighlight = selectedId ? highlights.find((h) => h.id === selectedId) : null
+  const missingClauses = useMemo(
+    () => notFoundIds.map((id) => clauseById[id]).filter(Boolean),
+    [notFoundIds, clauseById],
+  )
 
   const segments = useMemo(() => {
     const segs = []
@@ -47,9 +51,27 @@ export default function DocumentTab({ docText, clauses }) {
         </div>
         <span className="flex items-center gap-1.5 text-[12.5px] text-ink-500">
           <LocateFixed size={13} aria-hidden />
-          {located} of {clauses.length} clauses located in the document text
+          {locatedCount ?? located} of {clauses.length} clauses located in the document text
         </span>
       </div>
+
+      {notFoundIds.length > 0 && (
+        <div className="mt-4 rounded-md border border-attention-medium-border bg-attention-medium-bg/80 px-4 py-3 text-[12.5px] text-ink-700">
+          <p className="font-medium text-attention-high">
+            {notFoundIds.length} clause(s) could not be matched to the document text, so they are not highlighted. Their explanations are still listed below, but check them against the original yourself.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {missingClauses.map((clause) => (
+              <span key={clause.id} className="chip border-attention-medium-border bg-attention-medium-bg text-attention-high">
+                {clause.title}
+                <span className="ml-2 rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-attention-medium">
+                  Quote not found in document
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 grid gap-5 lg:grid-cols-[1.65fr_1fr]">
         {/* Document viewer */}
@@ -76,7 +98,9 @@ export default function DocumentTab({ docText, clauses }) {
                     title={`${clauseById[seg.highlight.id]?.title} — click for the plain-language explanation`}
                     className={`cursor-pointer rounded-sm px-0.5 underline decoration-2 underline-offset-2 transition-shadow hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ink-950 ${
                       HL_CLASS[seg.highlight.riskLevel]
-                    } ${selectedId === seg.highlight.id ? 'ring-2 ring-ink-950' : ''}`}
+                    } ${selectedId === seg.highlight.id ? 'ring-2 ring-ink-950' : ''} ${
+                      selectedSpan && selectedSpan.start === seg.highlight.start && selectedSpan.end === seg.highlight.end ? 'ring-2 ring-attention-medium' : ''
+                    }`}
                   >
                     {seg.text}
                   </span>
