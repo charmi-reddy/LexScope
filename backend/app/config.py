@@ -5,6 +5,22 @@ changes. The server-side Gemini key is read from environment variables and
 never hardcoded into the application source.
 """
 import os
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency fallback
+    load_dotenv = None
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+for _candidate in (_BASE_DIR / ".env", Path.cwd() / ".env"):
+    if _candidate.exists():
+        try:
+            if load_dotenv is not None:
+                load_dotenv(_candidate, override=False)
+        except Exception:  # pragma: no cover - ignore file parsing errors at import time
+            pass
+        break
 
 APP_NAME = "LexScope API"
 APP_VERSION = "0.1.0"

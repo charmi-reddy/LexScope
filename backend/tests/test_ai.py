@@ -5,6 +5,8 @@ Run: cd backend && python -m pytest tests/ -q
 """
 from __future__ import annotations
 
+import importlib
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -121,6 +123,17 @@ def test_provider_selection(monkeypatch):
     monkeypatch.setattr(ai_proxy, "GEMINI_API_KEY", None)
     assert ai_proxy.active_provider() == "none"
     assert ai_proxy.is_configured() is False
+
+
+def test_config_loads_backend_dotenv(monkeypatch):
+    import app.config as config
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr(config, "GEMINI_API_KEY", None)
+
+    importlib.reload(config)
+    assert config.GEMINI_API_KEY is not None
+    assert config.GEMINI_API_KEY != "**"
 
 
 def test_gemini_provider_strips_prefix_and_uses_key(monkeypatch):
