@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import API_PREFIX, APP_NAME, APP_VERSION, CORS_ORIGINS
 from app.routes import ai, documents, health
+from app.services import ai_proxy
 from app.utils.errors import AppError
 
 logger = logging.getLogger("lexscope")
@@ -71,6 +72,16 @@ async def unexpected_error_handler(_: Request, exc: Exception) -> JSONResponse:
 app.include_router(health.router, prefix=API_PREFIX, tags=["health"])
 app.include_router(documents.router, prefix=API_PREFIX, tags=["documents"])
 app.include_router(ai.router, prefix=API_PREFIX, tags=["ai"])
+
+
+def log_ai_startup_status() -> None:
+    if ai_proxy.active_provider() == "none":
+        logger.warning("AI startup check: missing GEMINI_API_KEY")
+    else:
+        logger.info("AI startup check: ok")
+
+
+log_ai_startup_status()
 
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 

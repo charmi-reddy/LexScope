@@ -74,17 +74,20 @@ def _parse_rate_limit(raw: str) -> tuple[int, int]:
 async def ai_status() -> dict:
     """Lets the frontend know whether server-side AI is configured (no secrets)."""
     provider = ai_proxy.active_provider()
+    reason = ai_proxy.config_error_reason() if provider == "none" else None
     return {
         "configured": provider != "none",
         "provider": provider if provider != "none" else None,
         "model": DEFAULT_AI_MODEL,
+        "reason": reason,
     }
 
 
 @router.post("/ai/chat")
 async def ai_chat(payload: AiChatRequest, request: Request) -> JSONResponse:
     if not ai_proxy.is_configured():
-        return JSONResponse(status_code=503, content=error_response("ai_not_configured", "The server has no AI credentials configured yet. See README → “Developer-pays AI setup”."))
+        reason = ai_proxy.config_error_reason() or "The server has no AI credentials configured yet. See README → “Developer-pays AI setup”."
+        return JSONResponse(status_code=503, content=error_response("ai_not_configured", reason))
 
     limit, window = _parse_rate_limit(AI_RATE_LIMIT)
     client_key = request.client.host if request.client else "unknown"

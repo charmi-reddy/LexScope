@@ -31,6 +31,14 @@ def test_status_reports_unconfigured(monkeypatch):
     assert r.json()["configured"] is False
 
 
+def test_status_reports_missing_key_reason(monkeypatch):
+    monkeypatch.setattr(ai_proxy, "GEMINI_API_KEY", None)
+    r = client.get("/api/ai/status")
+    assert r.status_code == 200
+    assert r.json()["configured"] is False
+    assert "GEMINI_API_KEY" in r.json()["reason"]
+
+
 def test_chat_requires_token(monkeypatch):
     monkeypatch.setattr(ai_proxy, "is_configured", lambda: False)
     r = client.post("/api/ai/chat", json={"messages": MSG})
@@ -119,8 +127,6 @@ def test_gemini_provider_strips_prefix_and_uses_key(monkeypatch):
     """Gemini route: model 'google/x' → 'x', GEMINI_API_KEY used as Bearer."""
     import asyncio
 
-    from app.services import ai_proxy
-
     monkeypatch.setattr(ai_proxy, "GEMINI_API_KEY", "test-key")
 
     captured = {}
@@ -155,7 +161,7 @@ def test_gemini_provider_strips_prefix_and_uses_key(monkeypatch):
 
     result = asyncio.run(ai_proxy.chat_completion([{"role": "user", "content": "x"}]))
     assert captured["url"] == ai_proxy.GEMINI_AI_URL
-    assert captured["json"]["model"] == "gemini-2.5-flash"  # prefix stripped    assert isinstance(captured["headers"].get("Authorization"), str)
-    assert captured["headers"]["Authorization"]
+    assert captured["json"]["model"] == "gemini-2.5-flash"
+    assert captured["headers"]["Authorization"] == "Bearer test-key"
     assert result["text"] == "hello"
     assert result["provider"] == "gemini"

@@ -1,4 +1,4 @@
-"""AI proxy service — the ONLY backend module that talks to AI providers.
+"""AI proxy service — the ONLY backend module that talks to Gemini.
 
 Developer-pays mode uses Google Gemini (GEMINI_API_KEY) through Gemini's
 OpenAI-compatible endpoint.
@@ -39,6 +39,13 @@ class AiUpstreamError(Exception):
         self.details = details or {}
 
 
+def config_error_reason() -> str | None:
+    """Returns a secret-safe reason when Gemini is not usable."""
+    if active_provider() != "none":
+        return None
+    return "GEMINI_API_KEY is missing or placeholder."
+
+
 def active_provider() -> str:
     """Which provider will serve AI calls right now: 'gemini' | 'none'."""
     if GEMINI_API_KEY:
@@ -63,10 +70,17 @@ def validate_model(model: Optional[str]) -> str:
 
 def _endpoint_and_headers(resolved_model: str) -> tuple[str, dict[str, str], str]:
     """Returns (url, headers, model_for_provider)."""
+    if not GEMINI_API_KEY:
+        raise AiUpstreamError(
+            "AI_NOT_CONFIGURED",
+            "GEMINI_API_KEY is missing or placeholder.",
+            status=503,
+        )
+
     # Gemini's OpenAI-compatible endpoint uses unprefixed model names.
     return (
         GEMINI_AI_URL,
-        {"Authorization": f"******", "Content-Type": "application/json"},
+        {"Authorization": f"Bearer {GEMINI_API_KEY}", "Content-Type": "application/json"},
         resolved_model.removeprefix("google/"),
     )
 
@@ -81,9 +95,11 @@ async def chat_completion(
     """Calls the active AI provider. Returns {"text", "model", "usage", "provider"}."""
     provider = active_provider()
     if provider == "none":
+        reason = config_error_reason() or "The server has no AI credentials configured yet. See README → “Developer-pays AI setup”."
+        logger.error("AI configuration error: %s", reason)
         raise AiUpstreamError(
             "AI_NOT_CONFIGURED",
-            "The server has no AI credentials configured yet. See README → “Developer-pays AI setup”.",
+            reason,
             status=503,
         )
     resolved_model = validate_model(model)
