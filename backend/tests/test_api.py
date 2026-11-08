@@ -4,10 +4,13 @@ Run: cd backend && python -m pytest tests/ -q
 """
 from __future__ import annotations
 
+import io
 import pathlib
 
 import pytest
+from docx import Document
 from fastapi.testclient import TestClient
+from pypdf import PdfReader
 
 from app.main import app
 
@@ -33,6 +36,31 @@ def test_limits():
     assert r.status_code == 200
     body = r.json()
     assert body["max_text_chars"] > body["min_text_chars"]
+
+
+def _make_pdf_bytes_with_text(text: str) -> bytes:
+    stream = f"BT /F1 12 Tf 50 100 Td ({text}) Tj ET".encode("latin-1")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        f"<< /Length {len(stream)} >>\nstream\n{stream.decode('latin-1')}\nendstream".encode("latin-1"),
+    ]
+    pdf = b"%PDF-1.4\n"
+    offsets = [0]
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf += f"{index} 0 obj\n{obj.decode('latin-1')}\nendobj\n".encode("latin-1")
+    xref_offset = len(pdf)
+    pdf += f"xref\n0 {len(objects) + 1}\n".encode("latin-1")
+    pdf += b"0000000000 65535 f \n"
+    for offset in offsets[1:]:
+        pdf += f"{offset:010d} 00000 n \n".encode("latin-1")
+    pdf += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("latin-1")
+    reader = PdfReader(io.BytesIO(pdf))
+    assert reader.pages[0].extract_text() is not None
+    return pdf
 
 
 def test_validate_ok():
@@ -74,10 +102,59 @@ def test_extract_txt_upload():
 def test_extract_unsupported():
     r = client.post(
         "/api/documents/extract",
-        files={"file": ("contract.pdf", b"%PDF-1.4 fake", "application/pdf")},
+        files={"file": ("contract.doc", b"fake word file", "application/msword")},
     )
     assert r.status_code == 415
     assert r.json()["error"]["code"] == "unsupported_format"
+
+
+def test_extract_pdf_upload():
+    content = _make_pdf_bytes_with_text(
+        "Important clause: severance terms apply to all terminated employees and include salary continuation for six months after employment ends."
+    )
+
+    r = client.post(
+        "/api/documents/extract",
+        files={"file": ("contract.pdf", content, "application/pdf")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "severance" in body["text"].lower()
+    assert body["name"] == "contract.pdf"
+
+
+def test_extract_docx_upload():
+    document = Document()
+    document.add_paragraph(
+        "This agreement covers salary, benefits, and termination rights for all employees and sets the notice period for departures."
+    )
+    table = document.add_table(rows=2, cols=2)
+    table.cell(0, 0).text = "Clause"
+    table.cell(0, 1).text = "Value"
+    table.cell(1, 0).text = "Termination"
+    table.cell(1, 1).text = "30 days notice"
+
+    stream = io.BytesIO()
+    document.save(stream)
+    content = stream.getvalue()
+
+    r = client.post(
+        "/api/documents/extract",
+        files={"file": ("contract.docx", content, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "termination" in body["text"].lower()
+    assert "30 days notice" in body["text"]
+
+
+def test_extract_corrupt_pdf_returns_4xx():
+    r = client.post(
+        "/api/documents/extract",
+        files={"file": ("broken.pdf", b"%PDF-1.4 not a real pdf", "application/pdf")},
+    )
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "corrupted_document"
 
 
 def test_extract_empty_file():

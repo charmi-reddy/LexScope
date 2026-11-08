@@ -1,10 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { FileText, UploadCloud } from 'lucide-react'
 
-const ACCEPT = '.txt,.text,.md,.markdown,text/plain'
+const ACCEPT = '.txt,.text,.md,.markdown,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 const PLANNED = {
-  '.pdf': 'PDF support is on the roadmap — export or copy the text as .txt for now.',
-  '.docx': 'Word (.docx) support is on the roadmap — save the file as .txt for now.',
   '.doc': 'Legacy Word (.doc) support is on the roadmap — save the file as .txt for now.',
   '.rtf': 'RTF files aren’t supported yet — save the file as .txt first.',
 }
@@ -69,10 +67,10 @@ export default function FileDrop({ onFile, busy, error }) {
               <UploadCloud size={22} className="text-ink-500" aria-hidden />
             </span>
             <p className="mt-4 text-sm font-medium text-ink-800">
-              Drop a .txt file here, or <span className="text-laurel-800 underline underline-offset-2">browse</span>
+              Drop a .txt, .pdf, or .docx file here, or <span className="text-laurel-800 underline underline-offset-2">browse</span>
             </p>
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500">
-              <FileText size={12} aria-hidden /> Plain text up to 512 KB — .txt, .md
+              <FileText size={12} aria-hidden /> Plain text and contracts up to 512 KB — .txt, .md, .pdf, .docx
             </p>
           </>
         )}

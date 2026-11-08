@@ -19,11 +19,9 @@ MIN_TEXT_CHARS = int(os.environ.get("LEXSCOPE_MIN_TEXT_CHARS", 80))
 # --- Supported formats -----------------------------------------------------
 # v1 ships TXT; the extractor registry (services/extraction.py) is designed so
 # PDF/DOCX extractors can be registered without touching the routes.
-TEXT_EXTENSIONS = [".txt", ".text", ".md", ".markdown"]
+TEXT_EXTENSIONS = [".txt", ".text", ".md", ".markdown", ".pdf", ".docx"]
 
 PLANNED_EXTENSIONS = {
-    ".pdf": "PDF support is on the roadmap — export or copy the text as .txt for now.",
-    ".docx": "Word (.docx) support is on the roadmap — save the file as .txt for now.",
     ".doc": "Legacy Word (.doc) support is on the roadmap — save the file as .txt for now.",
     ".rtf": "RTF support is on the roadmap — save the file as .txt for now.",
     ".html": "HTML files are not supported yet — paste the text instead.",

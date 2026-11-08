@@ -77,8 +77,8 @@ export default function AnalyzePage() {
       setExtractError(new Error(PLANNED_FORMATS[ext]))
       return
     }
-    if (ext && !['.txt', '.text', '.md', '.markdown'].includes(ext)) {
-      setExtractError(new Error('Unsupported file type. Upload a .txt file or paste the text directly.'))
+    if (ext && !['.txt', '.text', '.md', '.markdown', '.pdf', '.docx'].includes(ext)) {
+      setExtractError(new Error('Unsupported file type. Upload a PDF, Word, or text file, or paste the text directly.'))
       return
     }
     if (file.size > LIMITS.maxFileBytes) {
@@ -156,7 +156,7 @@ export default function AnalyzePage() {
           Add a legal document
         </h1>
         <p className="mt-3 text-[15px] leading-7 text-ink-600">
-          Paste the text of an agreement, or upload a .txt file. LexScope analyzes it in your
+          Paste the text of an agreement, or upload a PDF or Word file. LexScope analyzes it in your
           browser with Gemini and never stores a copy.
         </p>
       </div>
