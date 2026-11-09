@@ -5,6 +5,7 @@
 import { parseAiJson } from '../frontend/src/services/legalAnalysisService.js'
 import { normalizeAnalysis, riskCounts } from '../frontend/src/utils/analysisSchema.js'
 import { locateClauses, locateQuote } from '../frontend/src/utils/highlight.js'
+import { pickTopFindings } from '../frontend/src/utils/topFindings.js'
 import { SAMPLE_DOCUMENT } from '../frontend/src/utils/sampleDocument.js'
 
 let failures = 0
@@ -135,6 +136,90 @@ console.log('locateClauses:')
   const drifted = 'All work product, inventions, ideas, source code and materials conceived by the Employee during the term of this Agreement, whether or not created during working hours and whether or not in the course of the Employee duties, shall be the sole and exclusive property of the Company.'
   const fz = locateClauses(doc, [{ id: 'f1', original_text: drifted, risk_level: 'medium' }])
   check('drifted wording located via fuzzy', fz.highlights.length === 1 && fz.highlights[0].match === 'fuzzy', JSON.stringify(fz.highlights))
+}
+
+console.log('pickTopFindings:')
+{
+  const doc = 'Payment due in 7 days. Confidential terms apply. Liability is unlimited in scope.'
+
+  const noFlags = pickTopFindings({ red_flags: [] }, doc)
+  check('0 flags returns []', Array.isArray(noFlags) && noFlags.length === 0)
+
+  const twoFlags = pickTopFindings(
+    {
+      red_flags: [
+        { id: 'f1', title: 'A', severity: 'medium', explanation: 'A.', supporting_quote: 'Payment due in 7 days.' },
+        { id: 'f2', title: 'B', severity: 'low', explanation: 'B.', supporting_quote: '' },
+      ],
+    },
+    doc,
+  )
+  check('2 flags returns 2 items', twoFlags.length === 2)
+
+  const fiveFlags = pickTopFindings(
+    {
+      red_flags: [
+        { id: 'f-low-1', title: 'Low 1', severity: 'low', explanation: 'Low.', supporting_quote: '' },
+        { id: 'f-med-1', title: 'Med 1', severity: 'medium', explanation: 'Med.', supporting_quote: '' },
+        { id: 'f-high-1', title: 'High 1', severity: 'high', explanation: 'High.', supporting_quote: '' },
+        { id: 'f-low-2', title: 'Low 2', severity: 'low', explanation: 'Low.', supporting_quote: '' },
+        { id: 'f-med-2', title: 'Med 2', severity: 'medium', explanation: 'Med.', supporting_quote: '' },
+      ],
+    },
+    doc,
+  )
+  check('5 flags returns 3 items', fiveFlags.length === 3)
+  check('high before medium before low', fiveFlags.map((f) => f.severity).join(',') === 'high,medium,medium')
+
+  const exactQuote = pickTopFindings(
+    {
+      red_flags: [
+        {
+          id: 'f-exact',
+          title: 'Exact quote',
+          severity: 'high',
+          explanation: 'Exact quote explanation.',
+          supporting_quote: 'Confidential terms apply.',
+        },
+      ],
+    },
+    doc,
+  )[0]
+  const start = doc.indexOf('Confidential terms apply.')
+  const end = start + 'Confidential terms apply.'.length
+  check('exact quote gets span with correct start/end', exactQuote.span?.start === start && exactQuote.span?.end === end)
+
+  const notInDoc = pickTopFindings(
+    {
+      red_flags: [
+        {
+          id: 'f-miss',
+          title: 'Missing quote',
+          severity: 'medium',
+          explanation: 'Missing quote explanation.',
+          supporting_quote: 'This sentence does not exist in the source text.',
+        },
+      ],
+    },
+    doc,
+  )[0]
+  check('quote not in document gets span null', notInDoc.span === null)
+
+  const noQuote = pickTopFindings(
+    {
+      red_flags: [
+        {
+          id: 'f-no-quote',
+          title: 'No quote',
+          severity: 'low',
+          explanation: 'No quote explanation.',
+          supporting_quote: '',
+        },
+      ],
+    },
+    doc,
+  )[0]
+  check('no quote gets span null', noQuote.span === null)
 }
 
 console.log(failures === 0 ? '\nALL TESTS PASSED' : `\n${failures} TEST(S) FAILED`)

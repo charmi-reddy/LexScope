@@ -1,6 +1,7 @@
 import { CalendarClock, ClipboardCheck, ListChecks } from 'lucide-react'
 import { riskStyle } from '../ui/RiskBadge'
 import { riskCounts } from '../../utils/analysisSchema.js'
+import TopFindings from './TopFindings'
 
 function SummaryCard({ summary }) {
   const paragraphs = summary.split(/\n{2,}/).filter(Boolean)
@@ -137,17 +138,20 @@ function DatesCard({ dates }) {
   )
 }
 
-export default function OverviewTab({ analysis, onGoToClauses }) {
+export default function OverviewTab({ analysis, findings, onGoToClauses, onShowInDocument }) {
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <div className="space-y-5 lg:col-span-2">
-        <SummaryCard summary={analysis.summary} />
-        <TakeawaysCard takeaways={analysis.key_takeaways} />
-        <ObligationsCard obligations={analysis.obligations} />
-      </div>
-      <div className="space-y-5">
-        <RiskOverviewCard analysis={analysis} onGoToClauses={onGoToClauses} />
-        <DatesCard dates={analysis.important_dates} />
+    <div className="space-y-5">
+      <TopFindings findings={findings} onShowInDocument={onShowInDocument} />
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <SummaryCard summary={analysis.summary} />
+          <TakeawaysCard takeaways={analysis.key_takeaways} />
+          <ObligationsCard obligations={analysis.obligations} />
+        </div>
+        <div className="space-y-5">
+          <RiskOverviewCard analysis={analysis} onGoToClauses={onGoToClauses} />
+          <DatesCard dates={analysis.important_dates} />
+        </div>
       </div>
     </div>
   )

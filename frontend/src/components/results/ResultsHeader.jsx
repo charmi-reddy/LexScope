@@ -3,7 +3,7 @@ import { FileText, Plus, Printer } from 'lucide-react'
 import RiskBadge from '../ui/RiskBadge'
 import { formatNumber } from '../../utils/text.js'
 
-export default function ResultsHeader({ analysis, source, meta, citationStats }) {
+export default function ResultsHeader({ analysis, source }) {
   const navigate = useNavigate()
   const stats = source?.stats
 
@@ -41,19 +41,7 @@ export default function ResultsHeader({ analysis, source, meta, citationStats })
         </div>
 
         <p className="mt-6 border-t border-ink-800 pt-4 text-[11.5px] text-ink-500">
-          {citationStats && citationStats.total > 0 && (
-            <>
-              <span className="text-ink-300">Citations:</span> {citationStats.verified} of {citationStats.total} quotes verified in the document
-              {citationStats.notFound > 0 ? ` · ${citationStats.notFound} not found` : ''}.{' '}
-            </>
-          )}
-          {meta?.model && (
-            <>
-              Analyzed with <span className="text-ink-300">{meta.model}</span> via backend Gemini proxy ·{' '}
-            </>
-          )}
-          {meta?.durationMs != null && <>completed in {(meta.durationMs / 1000).toFixed(0)}s · </>}
-          AI-generated attention indicators — not legal judgments.
+          AI-generated attention indicators - not legal judgments.
         </p>
       </div>
     </section>
