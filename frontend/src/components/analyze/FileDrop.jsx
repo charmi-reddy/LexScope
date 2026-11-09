@@ -24,7 +24,7 @@ export default function FileDrop({ onFile, busy, error }) {
       <div
         role="button"
         tabIndex={0}
-        aria-label="Upload a text file"
+        aria-label="Upload a document"
         onClick={() => inputRef.current?.click()}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {

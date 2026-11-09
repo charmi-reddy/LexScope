@@ -25,7 +25,7 @@ export default function PrivacySection() {
         <div className="max-w-2xl">
           <p className="overline-label text-ink-400!">Privacy &amp; security</p>
           <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Built to forget your document
+            Your documents never touch our servers
           </h2>
         </div>
 

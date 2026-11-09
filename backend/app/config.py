@@ -33,8 +33,8 @@ WARN_TEXT_CHARS = int(os.environ.get("LEXSCOPE_WARN_TEXT_CHARS", 45_000))
 MIN_TEXT_CHARS = int(os.environ.get("LEXSCOPE_MIN_TEXT_CHARS", 80))
 
 # --- Supported formats -----------------------------------------------------
-# v1 ships TXT; the extractor registry (services/extraction.py) is designed so
-# PDF/DOCX extractors can be registered without touching the routes.
+# TXT, PDF, and DOCX are supported. The extractor registry
+# (services/extraction.py) allows additional formats without touching routes.
 TEXT_EXTENSIONS = [".txt", ".text", ".md", ".markdown", ".pdf", ".docx"]
 
 PLANNED_EXTENSIONS = {
