@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { FileText, Plus, Printer } from 'lucide-react'
+import { Download, FileText, Plus } from 'lucide-react'
 import RiskBadge from '../ui/RiskBadge'
 import { formatNumber } from '../../utils/text.js'
 
@@ -32,7 +32,7 @@ export default function ResultsHeader({ analysis, source }) {
 
           <div className="flex flex-wrap items-center gap-2 no-print">
             <button type="button" onClick={() => window.print()} className="btn-light py-2! text-[13px]">
-              <Printer size={14} aria-hidden /> Print report
+              <Download size={14} aria-hidden /> Save as PDF
             </button>
             <button type="button" onClick={() => navigate('/analyze')} className="btn-accent py-2! text-[13px]">
               <Plus size={14} aria-hidden /> New analysis

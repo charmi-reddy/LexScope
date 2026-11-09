@@ -6,6 +6,7 @@ import { parseAiJson } from '../frontend/src/services/legalAnalysisService.js'
 import { normalizeAnalysis, riskCounts } from '../frontend/src/utils/analysisSchema.js'
 import { locateClauses, locateQuote } from '../frontend/src/utils/highlight.js'
 import { pickTopFindings } from '../frontend/src/utils/topFindings.js'
+import { printTitle } from '../frontend/src/utils/printReport.js'
 import {
   loadHistory,
   saveToHistory,
@@ -337,6 +338,20 @@ console.log('historyStorage:')
   saveToHistory(makePayload('big-3', largeText), limitedStorage, 6003)
   const limited = loadHistory(limitedStorage)
   check('size-limited storage keeps newest after dropping oldest', limited.length === 1 && limited[0].source.name === 'Document big-3')
+}
+
+console.log('printTitle:')
+{
+  check('pdf extension removed and slugified', printTitle({ name: 'My Lease.pdf' }) === 'lexscope-report-my-lease')
+  check('spaces and punctuation collapse to single hyphens', printTitle({ name: 'NDA   !!! draft (v2).PDF' }) === 'lexscope-report-nda-draft-v2')
+  check('missing name falls back to document', printTitle({}) === 'lexscope-report-document')
+
+  const longTitle = printTitle({ name: `A ${'very '.repeat(40)}long-document-name.pdf` })
+  const slug = longTitle.replace('lexscope-report-', '')
+  check('slug length is at most 60', slug.length <= 60)
+  check('slug has no trailing hyphen', !slug.endsWith('-'))
+
+  check('name without extension remains intact', printTitle({ name: 'nda' }) === 'lexscope-report-nda')
 }
 
 console.log(failures === 0 ? '\nALL TESTS PASSED' : `\n${failures} TEST(S) FAILED`)

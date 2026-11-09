@@ -113,4 +113,86 @@
   body {
     background: #fff;
   }
+
+  @page {
+    margin: 16mm 14mm;
+  }
+
+  .print-report {
+    color: #000;
+    background: #fff;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .print-report__header {
+    margin-bottom: 14px;
+  }
+
+  .print-report__brand {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .print-report__title {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  .print-report__meta,
+  .print-report__notice {
+    margin: 6px 0 0;
+  }
+
+  .report-section {
+    margin-top: 18px;
+  }
+
+  .report-section h2 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .report-item {
+    margin-top: 10px;
+    break-inside: avoid-page;
+  }
+
+  .report-item h3 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .report-item p,
+  .report-section p,
+  .report-section li {
+    margin: 4px 0;
+  }
+
+  .report-section ol {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+
+  .report-quote {
+    margin: 6px 0;
+    padding-left: 10px;
+    border-left: 2px solid #555;
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .print-report__footer {
+    margin-top: 22px;
+    padding-top: 10px;
+    border-top: 1px solid #999;
+    font-size: 11px;
+  }
 }
