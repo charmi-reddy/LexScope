@@ -6,6 +6,12 @@ import { parseAiJson } from '../frontend/src/services/legalAnalysisService.js'
 import { normalizeAnalysis, riskCounts } from '../frontend/src/utils/analysisSchema.js'
 import { locateClauses, locateQuote } from '../frontend/src/utils/highlight.js'
 import { pickTopFindings } from '../frontend/src/utils/topFindings.js'
+import {
+  loadHistory,
+  saveToHistory,
+  removeFromHistory,
+  MAX_HISTORY_ENTRIES,
+} from '../frontend/src/utils/historyStorage.js'
 import { SAMPLE_DOCUMENT } from '../frontend/src/utils/sampleDocument.js'
 
 let failures = 0
@@ -220,6 +226,117 @@ console.log('pickTopFindings:')
     doc,
   )[0]
   check('no quote gets span null', noQuote.span === null)
+}
+
+console.log('historyStorage:')
+{
+  function createFakeStorage() {
+    const data = new Map()
+    return {
+      getItem(key) {
+        return data.has(key) ? data.get(key) : null
+      },
+      setItem(key, value) {
+        data.set(key, String(value))
+      },
+      removeItem(key) {
+        data.delete(key)
+      },
+    }
+  }
+
+  function makePayload(i, text = `Doc ${i}`) {
+    return {
+      analysis: { summary: `Summary ${i}`, overall_risk: 'medium', document_type: 'agreement' },
+      meta: { model: 'test-model' },
+      source: { name: `Document ${i}`, text },
+    }
+  }
+
+  const storage = createFakeStorage()
+  check('loadHistory on empty storage returns []', Array.isArray(loadHistory(storage)) && loadHistory(storage).length === 0)
+
+  saveToHistory(makePayload(1), storage, 1001)
+  const one = loadHistory(storage)
+  check('save/load round-trip keeps source.name', one.length === 1 && one[0].source.name === 'Document 1')
+  check('save/load round-trip keeps analysis', one.length === 1 && one[0].analysis.summary === 'Summary 1')
+
+  saveToHistory(makePayload('A'), storage, 2001)
+  saveToHistory(makePayload('B'), storage, 2002)
+  const newestFirst = loadHistory(storage)
+  check('saving entry A then B puts B first', newestFirst[0]?.source?.name === 'Document B')
+
+  const cappedStorage = createFakeStorage()
+  for (let i = 0; i < MAX_HISTORY_ENTRIES + 2; i++) {
+    saveToHistory(makePayload(i), cappedStorage, 3000 + i)
+  }
+  const capped = loadHistory(cappedStorage)
+  check('history keeps exactly MAX_HISTORY_ENTRIES', capped.length === MAX_HISTORY_ENTRIES)
+  check('history drops oldest entries', capped[capped.length - 1]?.source?.name === 'Document 2')
+
+  const removeStorage = createFakeStorage()
+  const r1 = saveToHistory(makePayload('x1'), removeStorage, 4101)
+  saveToHistory(makePayload('x2'), removeStorage, 4102)
+  const removed = removeFromHistory(r1[0].id, removeStorage)
+  check('removeFromHistory removes only matching id', removed.length === 1 && removed[0].source.name === 'Document x2')
+
+  const invalidJsonStorage = {
+    getItem() {
+      return '{broken-json'
+    },
+    setItem() {},
+    removeItem() {},
+  }
+  check('invalid JSON returns []', Array.isArray(loadHistory(invalidJsonStorage)) && loadHistory(invalidJsonStorage).length === 0)
+
+  const alwaysThrowStorage = {
+    getItem() {
+      return null
+    },
+    setItem() {
+      throw new Error('quota')
+    },
+    removeItem() {},
+  }
+  let throwResult = null
+  let throwCrashed = false
+  try {
+    throwResult = saveToHistory(makePayload('throw'), alwaysThrowStorage, 5001)
+  } catch {
+    throwCrashed = true
+  }
+  check('setItem throwing does not crash saveToHistory', !throwCrashed)
+  check('setItem throwing still returns a list', Array.isArray(throwResult) && throwResult.length >= 1)
+
+  const limitedMap = new Map()
+  const limitedStorage = {
+    getItem(key) {
+      return limitedMap.has(key) ? limitedMap.get(key) : null
+    },
+    setItem(key, value) {
+      if (String(value).length > 2000) throw new Error('too big')
+      limitedMap.set(key, String(value))
+    },
+    removeItem(key) {
+      limitedMap.delete(key)
+    },
+  }
+  let largeText = 'x'.repeat(100)
+  while (true) {
+    const oneSize = JSON.stringify([{ ...makePayload('probe-1', largeText), id: 'id-1', createdAt: 1 }]).length
+    const twoSize = JSON.stringify([
+      { ...makePayload('probe-2', largeText), id: 'id-2', createdAt: 2 },
+      { ...makePayload('probe-1', largeText), id: 'id-1', createdAt: 1 },
+    ]).length
+    if (oneSize < 2000 && twoSize > 2000) break
+    largeText += 'x'.repeat(25)
+    if (largeText.length > 5000) break
+  }
+  saveToHistory(makePayload('big-1', largeText), limitedStorage, 6001)
+  saveToHistory(makePayload('big-2', largeText), limitedStorage, 6002)
+  saveToHistory(makePayload('big-3', largeText), limitedStorage, 6003)
+  const limited = loadHistory(limitedStorage)
+  check('size-limited storage keeps newest after dropping oldest', limited.length === 1 && limited[0].source.name === 'Document big-3')
 }
 
 console.log(failures === 0 ? '\nALL TESTS PASSED' : `\n${failures} TEST(S) FAILED`)

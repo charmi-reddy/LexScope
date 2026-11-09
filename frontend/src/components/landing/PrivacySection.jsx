@@ -3,8 +3,8 @@ import { EyeOff, KeyRound, Trash2 } from 'lucide-react'
 const POINTS = [
   {
     Icon: Trash2,
-    title: 'Nothing is stored',
-    body: 'LexScope has no document database. Your text is processed in the moment and released when you leave the page — refreshing the tab later starts fresh.',
+    title: 'Nothing stored on our servers',
+    body: 'LexScope has no document database and no accounts. Your past analyses live only in this browser\'s local storage on this device - delete them anytime from the History page.',
   },
   {
     Icon: KeyRound,

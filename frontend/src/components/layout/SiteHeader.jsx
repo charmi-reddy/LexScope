@@ -39,6 +39,12 @@ export default function SiteHeader() {
         )}
 
         <div className="flex items-center gap-3">
+          <Link
+            to="/history"
+            className="text-[13px] font-medium text-ink-600 transition-colors hover:text-ink-950"
+          >
+            History
+          </Link>
           {pathname !== '/analyze' && (
             <Link
               to="/analyze"

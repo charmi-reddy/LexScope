@@ -156,8 +156,8 @@ export default function AnalyzePage() {
           Add a legal document
         </h1>
         <p className="mt-3 text-[15px] leading-7 text-ink-600">
-          Paste the text of an agreement, or upload a PDF or Word file. LexScope analyzes it in your
-          browser with Gemini and never stores a copy.
+          Paste the text of an agreement, or upload a PDF or Word file. LexScope analyzes it with
+          Gemini and keeps the finished report in this browser's storage only - visible on the History page.
         </p>
       </div>
 

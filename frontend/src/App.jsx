@@ -4,6 +4,7 @@ import SiteHeader from './components/layout/SiteHeader'
 import LandingPage from './pages/LandingPage'
 import AnalyzePage from './pages/AnalyzePage'
 import ResultsPage from './pages/ResultsPage'
+import HistoryPage from './pages/HistoryPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/analyze" element={<AnalyzePage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/results/*" element={<Navigate to="/results" replace />} />
           <Route path="*" element={<NotFoundPage />} />

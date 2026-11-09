@@ -1,10 +1,11 @@
 /**
  * Holds the current analysis in memory (and mirrors it to sessionStorage so a
- * tab refresh on /results doesn't lose the report). Deliberately NOT
- * localStorage: sessions end when the tab closes, so documents never outlive
- * the visit — part of LexScope's privacy stance.
+ * tab refresh on /results doesn't lose the report). sessionStorage is still
+ * refresh-only, but completed analyses are also kept in localStorage history
+ * on this device (newest 10), deletable from the History page.
  */
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { saveToHistory } from '../utils/historyStorage.js'
 
 const AnalysisContext = createContext(null)
 const SESSION_KEY = 'lexscope.analysis.v1'
@@ -20,7 +21,9 @@ export function AnalysisProvider({ children }) {
     }
   })
 
-  const saveAnalysis = useCallback((payload) => {
+  const saveAnalysis = useCallback((payload, options) => {
+    const { addToHistory = true } = options || {}
+
     setResult(payload)
     try {
       const serialized = JSON.stringify(payload)
@@ -28,6 +31,14 @@ export function AnalysisProvider({ children }) {
       else sessionStorage.removeItem(SESSION_KEY)
     } catch {
       /* storage full/blocked — memory copy still works */
+    }
+
+    if (addToHistory) {
+      try {
+        saveToHistory(payload)
+      } catch {
+        /* history failures must never block analysis flow */
+      }
     }
   }, [])
 
