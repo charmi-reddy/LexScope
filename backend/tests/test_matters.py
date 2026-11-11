@@ -12,9 +12,12 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, patch
 
 from app.auth import get_current_user
 from app.main import app
+from app.routes import matters as matters_routes
+from app.services.ai_proxy import AiUpstreamError
 from app.services.supabase_client import get_supabase
 
 
@@ -60,7 +63,7 @@ class Query:
         rows = self.db.tables[self.table_name]
         matched = [row for row in rows if all(row.get(k) == v for k, v in self.filters.items())]
         if self.action == "insert":
-            row = {"id": "new-matter", "status": "open", **self.payload}
+            row = {"id": f"new-{self.table_name}", "status": "open", "created_at": "2025-03-01", **self.payload}
             rows.append(row)
             matched = [row]
         elif self.action == "update":
@@ -130,3 +133,67 @@ def test_other_users_matter_appears_missing(method, path, body):
 def test_invalid_matter_type_returns_422():
     response = client.post("/api/matters", json={"title": "Bad", "matter_type": "contract"})
     assert response.status_code == 422
+
+
+UPDATE_TEXT = (
+    "This notice confirms that the parties agreed to extend the response deadline by thirty days. "
+    "All other terms remain unchanged and the recipient must reply in writing."
+)
+
+
+def test_first_update_sets_summary_and_first_document_change():
+    db.tables["matter_updates"] = []
+    result = {
+        "update_summary": "The notice extends the response deadline by thirty days. The recipient must reply in writing. All other terms remain unchanged.",
+        "what_changed": "First document in this matter.",
+        "running_summary": "The parties are handling a matter with a response deadline. The latest notice extends that deadline by thirty days. A written reply is required.",
+    }
+    with patch.object(matters_routes.matter_ai, "summarize_matter_update", new=AsyncMock(return_value=result)) as summarize:
+        response = client.post(
+            "/api/matters/mine/updates",
+            files={"file": ("notice.txt", UPDATE_TEXT.encode(), "text/plain")},
+            data={"label": "Initial notice", "update_type": "notice"},
+        )
+    assert response.status_code == 200
+    assert response.json()["current_summary"] == result["running_summary"]
+    stored = next(row for row in response.json()["updates"] if row["label"] == "Initial notice")
+    assert stored["what_changed"] == "First document in this matter."
+    assert summarize.await_args.args[1] is None
+
+
+def test_second_update_receives_previous_summaries():
+    db.tables["matters"][0]["current_summary"] = "The matter began with a notice."
+    db.tables["matter_updates"] = []
+    db.tables["matter_updates"].append(
+        {"id": "old-update", "matter_id": "mine", "user_id": "user-1", "label": "First notice", "summary": "A deadline was set.", "created_at": "2025-01-03"}
+    )
+    result = {
+        "update_summary": "The reply responds to the initial notice. It disputes the proposed deadline. The recipient asks for more time.",
+        "what_changed": "The recipient disputes the deadline and asks for more time.",
+        "running_summary": "The matter concerns a response deadline. The recipient has disputed it and requested more time.",
+    }
+    with patch.object(matters_routes.matter_ai, "summarize_matter_update", new=AsyncMock(return_value=result)) as summarize:
+        response = client.post(
+            "/api/matters/mine/updates",
+            files={"file": ("reply.txt", UPDATE_TEXT.encode(), "text/plain")},
+            data={"label": "Reply", "update_type": "reply"},
+        )
+    assert response.status_code == 200
+    assert summarize.await_args.args[1] == "The matter began with a notice."
+    assert summarize.await_args.args[2] == [{"label": "First notice", "summary": "A deadline was set."}]
+
+
+def test_ai_failure_does_not_insert_update():
+    initial_updates = deepcopy(db.tables["matter_updates"])
+    initial_summary = db.tables["matters"][0].get("current_summary")
+    error = AiUpstreamError("AI_UPSTREAM", "The AI service had a temporary problem.")
+    with patch.object(matters_routes.matter_ai, "summarize_matter_update", new=AsyncMock(side_effect=error)):
+        response = client.post(
+            "/api/matters/mine/updates",
+            files={"file": ("notice.txt", UPDATE_TEXT.encode(), "text/plain")},
+            data={"label": "Initial notice"},
+        )
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "ai_upstream"
+    assert db.tables["matter_updates"] == initial_updates
+    assert db.tables["matters"][0].get("current_summary") == initial_summary
