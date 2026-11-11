@@ -10,6 +10,7 @@ import AuthPage from './pages/AuthPage.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import MattersPage from './pages/MattersPage.jsx'
 import RequireAuth from './components/layout/RequireAuth.jsx'
+import MatterDetailPage from './pages/MatterDetailPage.jsx'
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/results/*" element={<Navigate to="/results" replace />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/matters" element={<RequireAuth><MattersPage /></RequireAuth>} />
+            <Route path="/matters/:id" element={<RequireAuth><MatterDetailPage /></RequireAuth>} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

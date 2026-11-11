@@ -66,3 +66,14 @@ export function deleteMatter(id) {
 export function getMatter(id) {
   return request(`/api/matters/${encodeURIComponent(id)}`)
 }
+
+export function addUpdate(matterId, { file, label, updateType }) {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('label', label)
+  form.append('update_type', updateType)
+  return request(`/api/matters/${encodeURIComponent(matterId)}/updates`, {
+    method: 'POST',
+    body: form,
+  })
+}
