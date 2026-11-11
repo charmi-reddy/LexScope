@@ -97,6 +97,8 @@ def get_matter(
         .execute()
     )
     matter["updates"] = updates.data or []
+    for update in matter["updates"]:
+        update.setdefault("deadlines", [])
     return matter
 
 
@@ -165,6 +167,7 @@ async def create_matter_update(
             "document_text": document_text,
             "summary": summaries["update_summary"],
             "what_changed": summaries["what_changed"],
+            "deadlines": summaries["deadlines"],
         }
     ).execute()
     client.table("matters").update(

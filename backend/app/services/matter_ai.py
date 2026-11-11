@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from typing import Any
 
 from app.services import ai_proxy
@@ -10,26 +11,41 @@ from app.services.ai_proxy import AiUpstreamError
 
 MODEL_CHAIN = ("google/gemini-2.5-flash", "google/gemini-3.5-flash-lite")
 
-SYSTEM_PROMPT = """You summarize legal matter documents for ordinary people. Use only facts stated in the supplied documents and context. Never invent facts, dates, or parties. Use plain language a non-lawyer understands. Return ONLY strict JSON with exactly these string keys:
+SYSTEM_PROMPT = """You summarize legal matter documents for ordinary people. Use only facts stated in the supplied documents and context. Never invent facts, dates, or parties. Use plain language a non-lawyer understands. Return ONLY strict JSON with exactly these keys:
 {
   "update_summary": "3-5 plain sentences about this document",
   "what_changed": "1-2 sentences on what this document changes compared to the previous state",
-  "running_summary": "at most 4 plain sentences on where the whole matter stands now, replacing the old one"
+  "running_summary": "at most 4 plain sentences on where the whole matter stands now, replacing the old one",
+  "deadlines": [{"date": "YYYY-MM-DD", "description": "short plain phrase like submit evidence"}]
 }
-If there is no previous running summary, what_changed must be exactly "First document in this matter." Do not use markdown or text outside the JSON object."""
+Include only deadlines and hearing dates explicitly set by the current document. Normalize dates to YYYY-MM-DD. A relative deadline may be converted only when the document provides an explicit anchor date and the calculation is unambiguous; never infer a missing year, anchor, or counting rule. Otherwise omit it. Do not copy dates only from prior context. Use an empty array when there are no supported deadlines. If there is no previous running summary, what_changed must be exactly "First document in this matter." Do not use markdown or text outside the JSON object."""
 
 
 def _sentence_count(value: str) -> int:
     return len(re.findall(r"[^.!?]+(?:[.!?]+|$)", value.strip())) if value.strip() else 0
 
 
-def _parse_summary(raw: str, has_previous: bool) -> dict[str, str]:
+def _parse_summary(raw: str, has_previous: bool) -> dict[str, Any]:
     data = json.loads(raw)
-    keys = {"update_summary", "what_changed", "running_summary"}
+    keys = {"update_summary", "what_changed", "running_summary", "deadlines"}
     if not isinstance(data, dict) or set(data) != keys:
         raise ValueError("JSON must contain exactly the required keys")
-    if any(not isinstance(data[key], str) or not data[key].strip() for key in keys):
+    string_keys = {"update_summary", "what_changed", "running_summary"}
+    if any(not isinstance(data[key], str) or not data[key].strip() for key in string_keys):
         raise ValueError("Summary values must be non-empty strings")
+    if not isinstance(data["deadlines"], list):
+        raise ValueError("deadlines must be an array")
+    for deadline in data["deadlines"]:
+        if not isinstance(deadline, dict) or set(deadline) != {"date", "description"}:
+            raise ValueError("each deadline must contain exactly date and description")
+        if not isinstance(deadline["date"], str) or not isinstance(deadline["description"], str) or not deadline["description"].strip():
+            raise ValueError("deadline date and description must be non-empty strings")
+        try:
+            parsed_date = date.fromisoformat(deadline["date"])
+        except ValueError as exc:
+            raise ValueError("deadline date must use YYYY-MM-DD") from exc
+        if parsed_date.isoformat() != deadline["date"]:
+            raise ValueError("deadline date must use YYYY-MM-DD")
     if not 3 <= _sentence_count(data["update_summary"]) <= 5:
         raise ValueError("update_summary must contain 3 to 5 sentences")
     if not 1 <= _sentence_count(data["what_changed"]) <= 2:
@@ -46,7 +62,7 @@ async def summarize_matter_update(
     previous_running_summary: str | None,
     previous_updates: list[dict[str, str]],
     document_text: str,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Summarize a new matter document, retrying malformed JSON once."""
     context = {
         "matter_title": matter_title,
@@ -74,7 +90,9 @@ async def summarize_matter_update(
                         "role": "user",
                         "content": (
                             "Repair your previous response. Return the same information as one valid strict JSON object "
-                            "with exactly update_summary, what_changed, and running_summary. Follow all sentence-count "
+                            "with exactly update_summary, what_changed, running_summary, and deadlines. Each deadlines "
+                            "entry must have an ISO YYYY-MM-DD date and a short description; use [] when there are no "
+                            "explicit dated deadlines in the document. Follow all sentence-count "
                             "rules and do not add facts. Return JSON only."
                         ),
                     },

@@ -147,6 +147,7 @@ def test_first_update_sets_summary_and_first_document_change():
         "update_summary": "The notice extends the response deadline by thirty days. The recipient must reply in writing. All other terms remain unchanged.",
         "what_changed": "First document in this matter.",
         "running_summary": "The parties are handling a matter with a response deadline. The latest notice extends that deadline by thirty days. A written reply is required.",
+        "deadlines": [{"date": "2026-11-14", "description": "submit evidence"}],
     }
     with patch.object(matters_routes.matter_ai, "summarize_matter_update", new=AsyncMock(return_value=result)) as summarize:
         response = client.post(
@@ -158,6 +159,7 @@ def test_first_update_sets_summary_and_first_document_change():
     assert response.json()["current_summary"] == result["running_summary"]
     stored = next(row for row in response.json()["updates"] if row["label"] == "Initial notice")
     assert stored["what_changed"] == "First document in this matter."
+    assert stored["deadlines"] == [{"date": "2026-11-14", "description": "submit evidence"}]
     assert summarize.await_args.args[1] is None
 
 
@@ -171,6 +173,7 @@ def test_second_update_receives_previous_summaries():
         "update_summary": "The reply responds to the initial notice. It disputes the proposed deadline. The recipient asks for more time.",
         "what_changed": "The recipient disputes the deadline and asks for more time.",
         "running_summary": "The matter concerns a response deadline. The recipient has disputed it and requested more time.",
+        "deadlines": [],
     }
     with patch.object(matters_routes.matter_ai, "summarize_matter_update", new=AsyncMock(return_value=result)) as summarize:
         response = client.post(
@@ -181,6 +184,14 @@ def test_second_update_receives_previous_summaries():
     assert response.status_code == 200
     assert summarize.await_args.args[1] == "The matter began with a notice."
     assert summarize.await_args.args[2] == [{"label": "First notice", "summary": "A deadline was set."}]
+    stored = next(row for row in response.json()["updates"] if row["label"] == "Reply")
+    assert stored["deadlines"] == []
+
+
+def test_matter_detail_defaults_legacy_update_deadlines_to_empty():
+    response = client.get("/api/matters/mine")
+    assert response.status_code == 200
+    assert response.json()["updates"][0]["deadlines"] == []
 
 
 def test_ai_failure_does_not_insert_update():

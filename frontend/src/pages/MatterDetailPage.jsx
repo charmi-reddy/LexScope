@@ -25,6 +25,20 @@ function formatDate(value) {
   }).format(date)
 }
 
+function formatDeadlineDate(value) {
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function localDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export default function MatterDetailPage() {
   const { id } = useParams()
   const [matter, setMatter] = useState(null)
@@ -50,6 +64,17 @@ export default function MatterDetailPage() {
   const updates = useMemo(
     () => [...(matter?.updates || [])].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)),
     [matter],
+  )
+  const deadlines = useMemo(
+    () => updates.flatMap((update) => (
+      Array.isArray(update.deadlines)
+        ? update.deadlines.map((deadline, index) => ({
+            ...deadline,
+            key: `${update.id}-${deadline.date}-${index}`,
+          }))
+        : []
+    )).sort((a, b) => a.date.localeCompare(b.date)),
+    [updates],
   )
 
   async function handleSubmit(event) {
@@ -88,6 +113,8 @@ export default function MatterDetailPage() {
   }
 
   const closed = matter.status === 'closed'
+  const today = localDateKey(new Date())
+  const nextDeadlineIndex = deadlines.findIndex((deadline) => deadline.date >= today)
 
   return (
     <div className="container-page max-w-3xl py-10 sm:py-14">
@@ -103,14 +130,44 @@ export default function MatterDetailPage() {
         </div>
       </header>
 
-      <section className="card mt-7 p-6 sm:p-7">
-        <p className="overline-label">Where things stand</p>
-        {matter.current_summary ? (
-          <p className="mt-3 whitespace-pre-line text-[15px] leading-7 text-ink-800">{matter.current_summary}</p>
-        ) : (
-          <p className="mt-3 text-sm leading-6 text-ink-500">Add the first document below and the summary will appear here.</p>
+      <div className={`mt-7 grid gap-4 ${deadlines.length ? 'md:grid-cols-[minmax(0,1fr)_minmax(15rem,0.8fr)]' : ''}`}>
+        <section className="card p-6 sm:p-7">
+          <p className="overline-label">Where things stand</p>
+          {matter.current_summary ? (
+            <p className="mt-3 whitespace-pre-line text-[15px] leading-7 text-ink-800">{matter.current_summary}</p>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-ink-500">Add the first document below and the summary will appear here.</p>
+          )}
+        </section>
+        {deadlines.length > 0 && (
+          <aside className="card p-6 sm:p-7" aria-labelledby="deadlines-heading">
+            <p className="overline-label">Coming up</p>
+            <h2 id="deadlines-heading" className="mt-2 font-display text-xl font-semibold text-ink-950">Deadlines</h2>
+            <ul className="mt-4 space-y-2">
+              {deadlines.map((deadline, index) => {
+                const past = deadline.date < today
+                const next = index === nextDeadlineIndex
+                return (
+                  <li
+                    key={deadline.key}
+                    className={`rounded-md border px-3 py-2.5 ${next ? 'border-laurel-200 bg-laurel-50 text-laurel-900' : 'border-transparent'} ${past ? 'text-ink-400' : ''}`}
+                  >
+                    <time
+                      dateTime={deadline.date}
+                      className={`block text-[13px] font-semibold ${past ? 'text-ink-400 line-through' : next ? 'text-laurel-900' : 'text-ink-700'}`}
+                    >
+                      {formatDeadlineDate(deadline.date)}
+                    </time>
+                    <span className={`mt-0.5 block text-[13px] leading-5 ${past ? 'text-ink-400' : next ? 'text-laurel-900' : 'text-ink-600'}`}>
+                      {deadline.description}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </aside>
         )}
-      </section>
+      </div>
 
       <section className="mt-9" aria-labelledby="timeline-heading">
         <div className="flex items-end justify-between gap-3">
