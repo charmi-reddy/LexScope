@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Scale } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 const LANDING_LINKS = [
   { href: '/#how-it-works', label: 'How it works' },
@@ -10,7 +11,12 @@ const LANDING_LINKS = [
 
 export default function SiteHeader() {
   const { pathname } = useLocation()
+  const { session, signOut } = useAuth()
   const onLanding = pathname === '/'
+
+  async function handleSignOut() {
+    await signOut()
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur no-print">
@@ -39,6 +45,30 @@ export default function SiteHeader() {
         )}
 
         <div className="flex items-center gap-3">
+          {session ? (
+            <>
+              <Link
+                to="/matters"
+                className="text-[13px] font-medium text-ink-600 transition-colors hover:text-ink-950"
+              >
+                Matters
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-[13px] font-medium text-ink-600 transition-colors hover:text-ink-950"
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/auth"
+              className="text-[13px] font-medium text-ink-600 transition-colors hover:text-ink-950"
+            >
+              Log in
+            </Link>
+          )}
           <Link
             to="/history"
             className="text-[13px] font-medium text-ink-600 transition-colors hover:text-ink-950"
