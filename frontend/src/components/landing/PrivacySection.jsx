@@ -3,18 +3,18 @@ import { EyeOff, KeyRound, Trash2 } from 'lucide-react'
 const POINTS = [
   {
     Icon: Trash2,
-    title: 'Nothing stored on our servers',
-    body: 'LexScope has no document database and no accounts. Your past analyses live only in this browser\'s local storage on this device - delete them anytime from the History page.',
+    title: 'Matters stay in your private account',
+    body: 'Matters and uploads are stored in your private account, only you can read them, and documents are never used to train AI models. Deleting a matter removes it and its documents for good.',
   },
   {
     Icon: KeyRound,
-    title: 'No sign-ups, no exposed keys',
-    body: 'You never create an account or see credentials. AI requests are relayed by the LexScope server to Google’s Gemini using a server-side token that never reaches your browser.',
+    title: 'Your account is protected',
+    body: 'Supabase secures your sign-in. AI requests are relayed by the LexScope server to Google’s Gemini using a server-side token that never reaches your browser.',
   },
   {
     Icon: EyeOff,
     title: 'Use judgment with sensitive data',
-    body: 'Documents pass through the LexScope server and the model provider in transit — nothing is stored or logged, but avoid pasting anything you wouldn’t forward by email.',
+    body: 'Documents are sent through the LexScope server and Gemini to produce summaries. Avoid uploading information you are not comfortable sharing with those services.',
   },
 ]
 
@@ -25,7 +25,7 @@ export default function PrivacySection() {
         <div className="max-w-2xl">
           <p className="overline-label text-ink-400!">Privacy &amp; security</p>
           <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Your docs are private to your account, never used for anything else.
+            Your documents stay private to your account.
           </h2>
         </div>
 

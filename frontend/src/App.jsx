@@ -4,7 +4,6 @@ import SiteHeader from './components/layout/SiteHeader'
 import LandingPage from './pages/LandingPage'
 import AnalyzePage from './pages/AnalyzePage'
 import ResultsPage from './pages/ResultsPage'
-import HistoryPage from './pages/HistoryPage'
 import NotFoundPage from './pages/NotFoundPage'
 import AuthPage from './pages/AuthPage.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -21,7 +20,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/analyze" element={<AnalyzePage />} />
-            <Route path="/history" element={<HistoryPage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/results/*" element={<Navigate to="/results" replace />} />
             <Route path="/auth" element={<AuthPage />} />

@@ -69,12 +69,6 @@ export default function SiteHeader() {
               Log in
             </Link>
           )}
-          <Link
-            to="/history"
-            className="text-[13px] font-medium text-ink-600 transition-colors hover:text-ink-950"
-          >
-            History
-          </Link>
           {pathname !== '/analyze' && (
             <Link
               to="/analyze"

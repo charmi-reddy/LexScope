@@ -18,11 +18,11 @@ LexScope is an AI-powered legal document understanding platform. Paste or upload
 │      │               (prompt + JSON schema + parse/normalize)       │
 │      │  /api/*  (same-origin, proxied by Vite in dev)               │
 │      ▼                                                              │
-│  History: browser localStorage, on-device only (newest 10)          │
+│  Supabase account: matters, uploads, and running summaries          │
 └──────┼──────────────────────────────────────────────────────────────┘
        ▼
 ┌────────────────────────────── Server ───────────────────────────────┐
-│  FastAPI (backend/) - stateless document + AI processing:           │
+│  FastAPI (backend/) - document, AI, and matter APIs:                │
 │    • text extraction (.txt/.md/.pdf/.docx via pypdf + python-docx;  │
 │      .doc/.rtf planned)                                             │
 │    • cleaning, stats, size/content validation                       │
@@ -30,11 +30,12 @@ LexScope is an AI-powered legal document understanding platform. Paste or upload
 │      provider-aware module. Server-side creds from .env:            │
 │      GEMINI_API_KEY (free tier)                                     │
 │      → Google Gemini (2.5 Flash, fallback 2.0 Flash)                │
-│    • rate limit, model allowlist, no content logging, NO storage    │
+│    • rate limit, model allowlist, no content logging                │
+│    • matter and document persistence through Supabase               │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Auth model - developer pays, users never sign in:** AI credentials live only in the backend environment (`.env`). Visitors analyze documents with zero accounts and zero popups. Provider priority in the backend: `GEMINI_API_KEY` (Google AI Studio, free tier - recommended) first.
+**Auth model - users sign in, developer pays:** Supabase accounts protect matter timelines and uploaded documents. AI credentials live only in the backend environment (`.env`); the developer pays for Gemini usage.
 
 ---
 
@@ -67,7 +68,13 @@ npm run dev
 Open **http://localhost:5173**. The Vite dev server proxies `/api/*` to port 8000, so no CORS setup is needed.
 
 
-## How the AI integration works (developer-pays, no user sign-in)
+## Matters
+
+Users sign in with Supabase accounts and group notices and orders into matters. Each matter keeps an update timeline and an AI-generated running summary that refreshes when a document is added. The frontend uses `@supabase/supabase-js` for authentication.
+
+Configure `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in `backend/.env`. Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `frontend/.env`. The backend settings are required at startup; the frontend settings enable the login page.
+
+## How the AI integration works (developer-pays)
 
 The backend owns AI credentials; visitors never sign in. Provider priority in `ai_proxy.py`:
 
@@ -105,7 +112,7 @@ LEXSCOPE_API_BASE=http://localhost:8000 node scripts/smoke-ai.mjs
 8. **Document highlighting** - the original document with color-coded highlights per attention level; click any highlight for the side-by-side explanation. Matching uses exact whitespace/case/quote normalization, handles "…" excerpts, and a conservative fuzzy fallback; paraphrased excerpts are never highlighted wrongly.
 9. **Red flags** - severity-ranked flags with explanations of the *actual wording* (presence alone is never treated as a problem).
 10. **Questions to ask** - practical pre-signing questions with check-off and copy-all.
-11. **History** - past analyses are saved on-device in the browser's localStorage (newest 10, individually deletable from the History page). No accounts, no server-side storage: reports live only in your browser.
+11. **Matters** - create an account matter and add notices or orders to see the timeline and running summary.
 12. **Save as PDF** - one click on *Save as PDF* exports the full report through the browser's print flow, using a dedicated print-ready report layout.
 13. **UX** - serif "legal brief" design system (paper/ink/laurel), hairline rules, strong typography, responsive, print-friendly report.
 
@@ -168,9 +175,9 @@ On the frontend, only `AnalyzePage`'s accepted-file logic needs the new extensio
 
 ## Privacy & security posture
 
-- **No server-side document storage and no accounts.** The backend processes each document in memory only and keeps nothing. Past analyses live only in this browser's localStorage on this device (newest 10, deletable from the History page); the in-progress report sits in `sessionStorage` and clears when the tab closes.
+- Matters and uploads are stored in your private account, only you can read them, and documents are never used to train AI models. Deleting a matter removes it and its documents for good.
 - No document content is logged, client or server.
-- No API credentials exist in the project.
+- Provider secrets are not hardcoded; required credentials are supplied through environment variables.
 - The UI explicitly warns users not to paste highly sensitive information.
 - The disclaimer is displayed on the landing page, footer, analyzer, and results.
 
@@ -193,7 +200,7 @@ On the frontend, only `AnalyzePage`'s accepted-file logic needs the new extensio
 7. Open **Document** → click the highlighted indemnity passage in the original contract; the explanation appears in the side panel.
 8. Open **Red flags** - emphasize the wording-based explanations, the citation badges (*Verified in document* / *Matched approximately* / *Quote not found*), and the "not automatically a problem" note.
 9. Open **Questions** → copy all.
-10. Hit **Save as PDF** for the print-ready full report, then open **History** - the analysis is there, on-device only, and deletable.
-11. Close with the disclaimer card + privacy posture: nothing stored server-side, no API keys, reports live in your browser.
+10. Hit **Save as PDF** for the print-ready full report, then create a matter and add a notice or order to see its timeline and running summary.
+11. Close with the disclaimer card + privacy posture: matter documents are kept in the user's account and deleted with the matter.
 
 *(Optional offline fallback: `node scripts/test-pipeline.mjs` demonstrates the full analysis pipeline against a recorded Gemini response without any network.)*
