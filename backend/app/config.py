@@ -85,7 +85,7 @@ GEMINI_AI_URL = os.environ.get(
     "GEMINI_AI_URL",
     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
 )
-DEFAULT_AI_MODEL = os.environ.get("LEXSCOPE_AI_MODEL", "google/gemini-2.5-flash")
+DEFAULT_AI_MODEL = os.environ.get("LEXSCOPE_AI_MODEL", "google/gemini-3.5-flash-lite")
 AI_TIMEOUT_SECONDS = int(os.environ.get("LEXSCOPE_AI_TIMEOUT_SECONDS", 180))
 
 # Simple per-client rate limit for AI calls, format "N requests / W seconds".

@@ -54,14 +54,14 @@ def test_chat_success_passthrough(monkeypatch):
     async def fake_completion(messages, **kwargs):
         assert messages == MSG
         assert kwargs["model"] is None  # falls back to server default
-        return {"text": "RAW AI TEXT", "model": "google/gemini-2.5-flash", "usage": {"x": 1}}
+        return {"text": "RAW AI TEXT", "model": "google/gemini-3.5-flash-lite", "usage": {"x": 1}}
 
     monkeypatch.setattr(ai_proxy, "chat_completion", fake_completion)
     r = client.post("/api/ai/chat", json={"messages": MSG})
     assert r.status_code == 200
     body = r.json()
     assert body["text"] == "RAW AI TEXT"
-    assert body["model"] == "google/gemini-2.5-flash"
+    assert body["model"] == "google/gemini-3.5-flash-lite"
 
 
 def test_chat_rejects_non_google_model(monkeypatch):
@@ -76,7 +76,7 @@ def test_rate_limit(monkeypatch):
     monkeypatch.setattr(ai_routes, "AI_RATE_LIMIT", "2/60")
 
     async def fake_completion(messages, **kwargs):
-        return {"text": "ok", "model": "google/gemini-2.5-flash", "usage": None}
+        return {"text": "ok", "model": "google/gemini-3.5-flash-lite", "usage": None}
 
     monkeypatch.setattr(ai_proxy, "chat_completion", fake_completion)
     assert client.post("/api/ai/chat", json={"messages": MSG}).status_code == 200
@@ -174,7 +174,7 @@ def test_gemini_provider_strips_prefix_and_uses_key(monkeypatch):
 
     result = asyncio.run(ai_proxy.chat_completion([{"role": "user", "content": "x"}]))
     assert captured["url"] == ai_proxy.GEMINI_AI_URL
-    assert captured["json"]["model"] == "gemini-2.5-flash"
+    assert captured["json"]["model"] == "gemini-3.5-flash-lite"
     assert captured["headers"]["Authorization"] == "Bearer test-key"
     assert result["text"] == "hello"
     assert result["provider"] == "gemini"

@@ -5,7 +5,7 @@
  *
  * Run: node scripts/test-pipeline.mjs
  */
-import { analyzeLegalDocument } from '../frontend/src/services/legalAnalysisService.js'
+import { analyzeLegalDocument, MODEL_CHAIN } from '../frontend/src/services/legalAnalysisService.js'
 import { SAMPLE_DOCUMENT } from '../frontend/src/utils/sampleDocument.js'
 
 const GEMINI_PAYLOAD = `Here is the analysis you requested:
@@ -115,14 +115,23 @@ const GEMINI_PAYLOAD = `Here is the analysis you requested:
 Let me know if you need anything else!`
 
 let chatCalls = 0
+const requestedModels = []
 
 // --- Fake backend AI proxy (mirrors POST /api/ai/chat) ----------------------
 globalThis.fetch = async (url, options) => {
   chatCalls++
   const body = JSON.parse(options.body)
+  requestedModels.push(body.model)
   if (url !== '/api/ai/chat') throw new Error('unexpected url: ' + url)
-  if (body.model !== 'google/gemini-2.5-flash') throw new Error('unexpected model: ' + body.model)
   if (!Array.isArray(body.messages) || body.messages.length < 2) throw new Error('expected system+user messages')
+  if (body.model === 'google/gemini-3.5-flash-lite') {
+    return {
+      ok: false,
+      status: 429,
+      json: async () => ({ error: { code: 'quota', message: 'Primary model quota exhausted.' } }),
+    }
+  }
+  if (body.model !== 'google/gemini-2.5-flash') throw new Error('unexpected model: ' + body.model)
   return {
     ok: true,
     status: 200,
@@ -144,8 +153,8 @@ const check = (label, cond, extra = '') => {
   else { failures++; console.error(`  ✗ ${label} ${extra}`) }
 }
 
-check('called Gemini once (no repair round needed)', chatCalls === 1, `calls=${chatCalls}`)
-check('progress stages emitted', stages.join(',') === 'connect,analyzing,parsing', stages.join(','))
+check('quota on primary falls back to next model', chatCalls === 2 && requestedModels.join(',') === MODEL_CHAIN.join(','), requestedModels.join(','))
+check('progress stages emitted', stages.join(',') === 'connect,analyzing,analyzing,parsing', stages.join(','))
 check('model recorded', meta.model === 'google/gemini-2.5-flash')
 check('document_type parsed', analysis.document_type === 'Employment agreement')
 check('overall risk = high', analysis.overall_risk === 'high')

@@ -1,6 +1,8 @@
 """Matter route tests using an in-memory Supabase query mock."""
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 
 os.environ.setdefault("SUPABASE_URL", "https://supabase.example.test")
@@ -208,3 +210,26 @@ def test_ai_failure_does_not_insert_update():
     assert response.json()["error"]["code"] == "ai_upstream"
     assert db.tables["matter_updates"] == initial_updates
     assert db.tables["matters"][0].get("current_summary") == initial_summary
+
+
+def test_matter_ai_falls_back_after_primary_quota(monkeypatch):
+    attempted_models = []
+
+    async def fake_chat_completion(_messages, *, model, **_kwargs):
+        attempted_models.append(model)
+        if len(attempted_models) == 1:
+            raise AiUpstreamError("QUOTA", "Primary model quota exhausted.", status=429)
+        return {
+            "text": json.dumps({
+                "update_summary": "The notice sets a response deadline. It requires a written reply. The parties must follow the stated schedule.",
+                "what_changed": "First document in this matter.",
+                "running_summary": "The matter has a deadline and requires a written reply.",
+                "deadlines": [],
+            })
+        }
+
+    monkeypatch.setattr(matters_routes.matter_ai.ai_proxy, "chat_completion", fake_chat_completion)
+    result = asyncio.run(matters_routes.matter_ai.summarize_matter_update("Matter", None, [], "Notice text"))
+
+    assert attempted_models == ["google/gemini-3.5-flash-lite", "google/gemini-2.5-flash"]
+    assert result["deadlines"] == []

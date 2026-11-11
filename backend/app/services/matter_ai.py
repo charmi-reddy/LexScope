@@ -9,7 +9,7 @@ from typing import Any
 from app.services import ai_proxy
 from app.services.ai_proxy import AiUpstreamError
 
-MODEL_CHAIN = ("google/gemini-2.5-flash", "google/gemini-3.5-flash-lite")
+MODEL_CHAIN = ("google/gemini-3.5-flash-lite", "google/gemini-2.5-flash")
 
 SYSTEM_PROMPT = """You summarize legal matter documents for ordinary people. Use only facts stated in the supplied documents and context. Never invent facts, dates, or parties. Use plain language a non-lawyer understands. Return ONLY strict JSON with exactly these keys:
 {
@@ -106,7 +106,7 @@ async def summarize_matter_update(
                     last_error = AiUpstreamError("AI_UPSTREAM", "The AI returned an invalid matter summary.", status=502)
                     last_error.__cause__ = exc
         except AiUpstreamError as exc:
-            if exc.code not in {"MODEL_UNAVAILABLE", "AI_UPSTREAM", "AI_UPSTREAM_UNREACHABLE", "TIMEOUT"}:
+            if exc.code not in {"MODEL_UNAVAILABLE", "AI_UPSTREAM", "AI_UPSTREAM_UNREACHABLE", "TIMEOUT", "QUOTA"}:
                 raise
             last_error = exc
 

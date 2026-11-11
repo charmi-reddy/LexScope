@@ -8,7 +8,7 @@ import { AiClientError } from './aiErrors.js'
 import { normalizeAnalysis } from '../utils/analysisSchema.js'
 
 /** Preferred Gemini models, tried in order. */
-export const MODEL_CHAIN = ['google/gemini-2.5-flash', 'google/gemini-3.5-flash-lite']
+export const MODEL_CHAIN = ['google/gemini-3.5-flash-lite', 'google/gemini-2.5-flash']
 
 const TEMPERATURE = 0.2
 const ANALYSIS_TIMEOUT_MS = 180000
@@ -169,7 +169,7 @@ export async function analyzeLegalDocument({ text, name, onStage }) {
     } catch (err) {
       const retryableWithNextModel =
         err instanceof AiClientError &&
-        ['MODEL_UNAVAILABLE', 'NO_RESPONSE', 'PROVIDER_ERROR', 'INVALID_JSON', 'EMPTY_ANALYSIS'].includes(err.code)
+        ['MODEL_UNAVAILABLE', 'NO_RESPONSE', 'PROVIDER_ERROR', 'INVALID_JSON', 'EMPTY_ANALYSIS', 'QUOTA'].includes(err.code)
       lastError = err
       if (!retryableWithNextModel) throw err
       // else: fall through and try the next model in the chain
