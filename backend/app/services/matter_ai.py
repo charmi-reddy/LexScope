@@ -8,7 +8,7 @@ from typing import Any
 from app.services import ai_proxy
 from app.services.ai_proxy import AiUpstreamError
 
-MODEL_CHAIN = ("google/gemini-2.5-flash", "google/gemini-2.0-flash")
+MODEL_CHAIN = ("google/gemini-2.5-flash", "google/gemini-2.5-flash-lite")
 
 SYSTEM_PROMPT = """You summarize legal matter documents for ordinary people. Use only facts stated in the supplied documents and context. Never invent facts, dates, or parties. Use plain language a non-lawyer understands. Return ONLY strict JSON with exactly these string keys:
 {

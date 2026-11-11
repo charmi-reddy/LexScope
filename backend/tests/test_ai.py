@@ -109,7 +109,7 @@ def test_payload_size_guard(monkeypatch):
 
 def test_model_validation_function():
     assert ai_proxy.validate_model(None) == ai_proxy.DEFAULT_AI_MODEL
-    assert ai_proxy.validate_model("google/gemini-2.0-flash") == "google/gemini-2.0-flash"
+    assert ai_proxy.validate_model("google/gemini-2.5-flash-lite") == "google/gemini-2.5-flash-lite"
     with pytest.raises(ai_proxy.AiUpstreamError):
         ai_proxy.validate_model("openai/gpt-4o")
     with pytest.raises(ai_proxy.AiUpstreamError):
