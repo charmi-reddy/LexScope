@@ -1,9 +1,9 @@
 """Pydantic schemas — the API's response/request contracts."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class DocumentStats(BaseModel):
@@ -41,3 +41,20 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
+
+
+class MatterCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    matter_type: Literal["notice", "agreement", "case", "other"] = "other"
+
+
+class MatterPatch(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    status: Optional[Literal["open", "closed"]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_nulls(cls, value):
+        if isinstance(value, dict) and any(key in value and value[key] is None for key in ("title", "status")):
+            raise ValueError("title and status cannot be null when provided")
+        return value
