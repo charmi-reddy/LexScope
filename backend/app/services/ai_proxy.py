@@ -85,6 +85,14 @@ def _endpoint_and_headers(resolved_model: str) -> tuple[str, dict[str, str], str
     )
 
 
+def _safe_error_body(response: httpx.Response) -> str:
+    """Return a bounded upstream error excerpt without exposing the API key."""
+    body = response.text[:500]
+    if GEMINI_API_KEY:
+        body = body.replace(GEMINI_API_KEY, "[REDACTED]")
+    return body
+
+
 async def chat_completion(
     messages: list[dict[str, str]],
     *,
@@ -112,18 +120,28 @@ async def chat_completion(
         payload["max_tokens"] = max_tokens
 
     started = time.monotonic()
+    logger.info("AI upstream attempt provider=%s model=%s", provider, resolved_model)
     try:
         async with httpx.AsyncClient(timeout=AI_TIMEOUT_SECONDS) as client:
             response = await client.post(url, json=payload, headers=headers)
     except httpx.TimeoutException as exc:
-        logger.warning("AI upstream timeout after %ss (%s)", AI_TIMEOUT_SECONDS, resolved_model)
+        logger.error(
+            "AI upstream failed provider=%s model=%s status=unavailable body=unavailable reason=timeout",
+            provider,
+            resolved_model,
+        )
         raise AiUpstreamError(
             "TIMEOUT",
             f"The AI service didn't respond within {AI_TIMEOUT_SECONDS}s. Long documents can need a retry.",
             status=504,
         ) from exc
     except httpx.HTTPError as exc:
-        logger.warning("AI upstream unreachable: %s", type(exc).__name__)
+        logger.error(
+            "AI upstream failed provider=%s model=%s status=unavailable body=unavailable reason=%s",
+            provider,
+            resolved_model,
+            type(exc).__name__,
+        )
         raise AiUpstreamError(
             "AI_UPSTREAM_UNREACHABLE",
             "Could not reach the AI service. Check the server's internet connection and try again.",
@@ -135,6 +153,15 @@ async def chat_completion(
         "AI call finished provider=%s model=%s status=%s duration=%ss msgs=%d",
         provider, resolved_model, response.status_code, duration, len(messages),
     )
+
+    if response.status_code >= 400:
+        logger.error(
+            "AI upstream failed provider=%s model=%s status=%s body=%s",
+            provider,
+            resolved_model,
+            response.status_code,
+            _safe_error_body(response),
+        )
 
     if response.status_code in (401, 403):
         raise AiUpstreamError(
