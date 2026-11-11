@@ -134,7 +134,7 @@ export default function MatterDetailPage() {
                   </div>
                   <span className="chip mt-2 border-rule bg-paper text-ink-600">{TYPE_LABELS[update.update_type] || 'Other'}</span>
                   <p className="mt-4 whitespace-pre-line text-sm leading-6 text-ink-800">{update.summary}</p>
-                  {update.what_changed && (
+                  {update.what_changed?.trim() && (
                     <p className="mt-3 border-t border-rule pt-3 text-[13px] italic leading-6 text-ink-600">
                       What changed: {update.what_changed}
                     </p>
@@ -149,6 +149,10 @@ export default function MatterDetailPage() {
       {closed ? (
         <p className="card mt-9 p-5 text-sm leading-6 text-ink-600">
           This matter is closed. Reopen it from the matters list to add updates.
+        </p>
+      ) : matter.title === 'Quick analyses' ? (
+        <p className="mt-9 text-sm leading-6 text-ink-500">
+          One-shot analyses land here automatically when you&apos;re logged in.
         </p>
       ) : (
         <section className="mt-9">

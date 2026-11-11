@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import API_PREFIX, APP_NAME, APP_VERSION, CORS_ORIGINS
-from app.routes import ai, documents, health, matters
+from app.routes import ai, documents, health, matters, quick_saves
 from app.services import ai_proxy
 from app.utils.errors import AppError
 
@@ -73,6 +73,7 @@ app.include_router(health.router, prefix=API_PREFIX, tags=["health"])
 app.include_router(documents.router, prefix=API_PREFIX, tags=["documents"])
 app.include_router(ai.router, prefix=API_PREFIX, tags=["ai"])
 app.include_router(matters.router, prefix=API_PREFIX, tags=["matters"])
+app.include_router(quick_saves.router, prefix=API_PREFIX, tags=["quick saves"])
 
 
 def log_ai_startup_status() -> None:

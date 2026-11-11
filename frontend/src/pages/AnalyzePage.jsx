@@ -10,6 +10,8 @@ import { analyzeLegalDocument } from '../services/legalAnalysisService'
 import { useAnalysis } from '../context/AnalysisContext'
 import { countWords } from '../utils/text.js'
 import { SAMPLE_DOCUMENT } from '../utils/sampleDocument.js'
+import { useAuth } from '../context/AuthContext.jsx'
+import { quickSaveAnalysis } from '../services/mattersApi.js'
 
 const LIMITS = { maxFileBytes: 512 * 1024, maxTextChars: 60000, minTextChars: 80 }
 const extensionOf = (name) => {
@@ -21,6 +23,7 @@ const extensionOf = (name) => {
 export default function AnalyzePage() {
   const navigate = useNavigate()
   const { saveAnalysis } = useAnalysis()
+  const { session } = useAuth()
 
   const [mode, setMode] = useState('paste') // 'paste' | 'upload'
   const [name, setName] = useState('')
@@ -125,6 +128,15 @@ export default function AnalyzePage() {
         meta,
         source: { name: validated.name, text: validated.text, stats: validated.stats, warnings: validated.warnings },
       })
+      if (session) {
+        void quickSaveAnalysis({
+          documentName: validated.name,
+          documentText: validated.text,
+          summary: analysis.summary,
+        }).catch((error) => {
+          console.warn('Quick analysis auto-save failed:', error?.message || 'Unknown error')
+        })
+      }
       navigate('/results')
     } catch (err) {
       if (runId !== runIdRef.current) return

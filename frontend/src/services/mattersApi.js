@@ -77,3 +77,14 @@ export function addUpdate(matterId, { file, label, updateType }) {
     body: form,
   })
 }
+
+export function quickSaveAnalysis({ documentName, documentText, summary }) {
+  return request('/api/quick-saves', {
+    method: 'POST',
+    body: JSON.stringify({
+      document_name: documentName,
+      document_text: documentText,
+      summary,
+    }),
+  })
+}
