@@ -89,7 +89,7 @@ The backend owns AI credentials; visitors never sign in. Provider priority in `a
 
 
 - Gemini is instructed to return **one strict JSON object** matching the LexScope schema (summary, document_type, overall_risk, key_takeaways, clauses[], red_flags[], obligations[], important_dates[], questions_to_ask[]). `utils/analysisSchema.js` re-validates/normalizes every field, so malformed AI output can never crash the UI.
-- Model chain: `google/gemini-2.5-flash` → fallback `google/gemini-2.5-flash-lite` (edit `MODEL_CHAIN` in `frontend/src/services/legalAnalysisService.js`).
+- Model chain: `google/gemini-2.5-flash` → fallback `google/gemini-3.5-flash-lite` (edit `MODEL_CHAIN` in `frontend/src/services/legalAnalysisService.js`).
 - `GET /api/ai/status` reports `{"configured", "provider", "model", "reason"}` - handy for debugging which route is live. If the Gemini key is missing or still a placeholder, `configured` is `false` and the `reason` names the missing variable without exposing the key itself.
 
 After deploying, run:

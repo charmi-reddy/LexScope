@@ -8,7 +8,7 @@ import { AiClientError } from './aiErrors.js'
 import { normalizeAnalysis } from '../utils/analysisSchema.js'
 
 /** Preferred Gemini models, tried in order. */
-export const MODEL_CHAIN = ['google/gemini-2.5-flash', 'google/gemini-2.5-flash-lite']
+export const MODEL_CHAIN = ['google/gemini-2.5-flash', 'google/gemini-3.5-flash-lite']
 
 const TEMPERATURE = 0.2
 const ANALYSIS_TIMEOUT_MS = 180000
