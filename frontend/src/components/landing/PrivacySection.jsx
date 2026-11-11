@@ -25,7 +25,7 @@ export default function PrivacySection() {
         <div className="max-w-2xl">
           <p className="overline-label text-ink-400!">Privacy &amp; security</p>
           <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            No document database. History stays on this device.
+            Your docs are private to your account, never used for anything else.
           </h2>
         </div>
 

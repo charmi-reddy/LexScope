@@ -71,6 +71,16 @@ def _configured_secret(name: str) -> str | None:
 
 
 GEMINI_API_KEY = _configured_secret("GEMINI_API_KEY")
+def _required_setting(name: str) -> str:
+    value = (os.environ.get(name) or "").strip()
+    if not value:
+        raise RuntimeError(f"Required setting {name} is missing or empty.")
+    return value
+
+
+SUPABASE_URL = _required_setting("SUPABASE_URL").rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = _required_setting("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_ANON_KEY = _required_setting("SUPABASE_ANON_KEY")
 GEMINI_AI_URL = os.environ.get(
     "GEMINI_AI_URL",
     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
